@@ -1,0 +1,1767 @@
+# Plan de Implementación - Smart Pricing System
+
+## Stack Tecnológico Decidido
+
+- **Backend**: Python 3.11+ con FastAPI
+- **Database**: PostgreSQL 15+ (transaccional)
+- **Cache**: Redis 7+ (precios en tiempo real)
+- **Time-Series**: TimescaleDB o InfluxDB (métricas)
+- **Message Queue**: RabbitMQ o AWS SQS
+- **ML**: scikit-learn, XGBoost, pandas
+- **Frontend**: React + TypeScript / Next.js
+- **Containerización**: Docker + Docker Compose
+- **Testing**: pytest, pytest-asyncio
+- **Monitoring**: Prometheus + Grafana
+
+---
+
+## FASE 0: Preparación del Entorno
+
+### Setup Inicial del Proyecto
+
+- [ ] Crear repositorio Git
+- [ ] Crear archivo `.gitignore` con exclusiones para Python, Node, IDE, etc.
+- [ ] Crear estructura de carpetas base del proyecto
+- [ ] Inicializar entorno virtual Python: `python -m venv venv`
+- [ ] Activar entorno virtual
+- [ ] Crear `requirements.txt` con dependencias iniciales
+- [ ] Crear `pyproject.toml` para configuración del proyecto
+- [ ] Instalar dependencias: `pip install -r requirements.txt`
+
+### Dependencias Iniciales a Instalar
+
+```
+# requirements.txt - Fase Inicial
+- [ ] fastapi>=0.104.0
+- [ ] uvicorn[standard]>=0.24.0
+- [ ] pydantic>=2.5.0
+- [ ] pydantic-settings>=2.1.0
+- [ ] sqlalchemy>=2.0.23
+- [ ] psycopg2-binary>=2.9.9
+- [ ] alembic>=1.12.1
+- [ ] redis>=5.0.1
+- [ ] python-dotenv>=1.0.0
+- [ ] PyYAML>=6.0.1
+- [ ] python-multipart>=0.0.6
+- [ ] python-jose[cryptography]>=3.3.0
+- [ ] passlib[bcrypt]>=1.7.4
+- [ ] httpx>=0.25.0
+- [ ] pytest>=7.4.3
+- [ ] pytest-asyncio>=0.21.1
+- [ ] pytest-cov>=4.1.0
+```
+
+### Estructura de Carpetas
+
+```
+- [ ] Crear carpeta `config/`
+- [ ] Crear carpeta `src/`
+- [ ] Crear carpeta `src/api/`
+- [ ] Crear carpeta `src/core/`
+- [ ] Crear carpeta `src/domain/`
+- [ ] Crear carpeta `src/domain/models/`
+- [ ] Crear carpeta `src/domain/services/`
+- [ ] Crear carpeta `src/domain/repositories/`
+- [ ] Crear carpeta `src/ml/`
+- [ ] Crear carpeta `src/ml/models/`
+- [ ] Crear carpeta `src/ml/features/`
+- [ ] Crear carpeta `src/ml/training/`
+- [ ] Crear carpeta `src/ml/inference/`
+- [ ] Crear carpeta `src/integrations/`
+- [ ] Crear carpeta `src/workers/`
+- [ ] Crear carpeta `src/utils/`
+- [ ] Crear carpeta `tests/`
+- [ ] Crear carpeta `tests/unit/`
+- [ ] Crear carpeta `tests/integration/`
+- [ ] Crear carpeta `tests/e2e/`
+- [ ] Crear carpeta `scripts/`
+- [ ] Crear carpeta `docker/`
+- [ ] Crear carpeta `dashboard/`
+```
+
+### Archivos de Configuración Base
+
+- [ ] Crear `.env.example` con variables de entorno necesarias
+- [ ] Crear `.env` local (no commitear)
+- [ ] Crear `docker-compose.yml`
+- [ ] Crear `README.md` con instrucciones de setup
+- [ ] Crear `LICENSE` si es proyecto open source
+- [ ] Crear `.dockerignore`
+
+---
+
+## FASE 1: Core Infrastructure & Configuration
+
+### Sistema de Configuración
+
+- [ ] Crear `src/core/__init__.py`
+- [ ] Crear `src/core/config.py` con clase Settings usando Pydantic
+- [ ] Implementar carga de configuración desde variables de entorno
+- [ ] Implementar carga de configuración desde archivos YAML
+- [ ] Crear función `get_settings()` con cache usando `@lru_cache`
+- [ ] Añadir validación de configuración al arranque
+
+### Configuraciones YAML
+
+#### config/base.yaml
+- [ ] Crear archivo `config/base.yaml`
+- [ ] Definir configuración de `app` (name, version, environment)
+- [ ] Definir configuración de `database` (host, port, name, pool_size)
+- [ ] Definir configuración de `redis` (host, port, db, ttl)
+- [ ] Definir configuración de `pricing` (update_interval, thresholds)
+- [ ] Definir configuración de `logging` (level, format)
+
+#### config/pricing_rules.yaml
+- [ ] Crear archivo `config/pricing_rules.yaml`
+- [ ] Definir `competition_multipliers` (league, cup, champions, etc.)
+- [ ] Definir `rival_multipliers` (por equipo específico)
+- [ ] Definir `time_decay` (factores según días hasta partido)
+- [ ] Definir `inventory_pressure` (factores según ocupación)
+- [ ] Definir `constraints` (límites de cambio de precio)
+- [ ] Definir `special_conditions` (holiday, weekend, derby, weather)
+
+#### config/zones.yaml
+- [ ] Crear archivo `config/zones.yaml`
+- [ ] Definir todas las zonas del estadio con:
+  - [ ] ID único
+  - [ ] Nombre
+  - [ ] Categoría (VIP, Premium, Standard, Reduced)
+  - [ ] Capacidad
+  - [ ] Precio base
+  - [ ] Precio mínimo
+  - [ ] Precio máximo
+  - [ ] Multiplicador de zona
+
+#### config/competitions.yaml
+- [ ] Crear archivo `config/competitions.yaml`
+- [ ] Definir tipos de competición (LaLiga, Copa del Rey, etc.)
+- [ ] Asignar multiplicadores a cada competición
+- [ ] Definir reglas especiales por competición
+
+### Sistema de Logging
+
+- [ ] Crear `src/core/logging.py`
+- [ ] Implementar configuración de logging estructurado
+- [ ] Configurar formato JSON para logs en producción
+- [ ] Configurar formato legible para desarrollo
+- [ ] Implementar función `setup_logging()`
+- [ ] Añadir context manager para logging de requests
+- [ ] Configurar niveles de log por módulo
+
+### Manejo de Excepciones
+
+- [ ] Crear `src/core/exceptions.py`
+- [ ] Definir excepción base `SmartPricingException`
+- [ ] Definir `ConfigurationError`
+- [ ] Definir `DatabaseError`
+- [ ] Definir `ValidationError`
+- [ ] Definir `PricingError`
+- [ ] Definir `ExternalAPIError`
+- [ ] Definir `CacheError`
+- [ ] Implementar exception handlers para FastAPI
+
+### Dependency Injection
+
+- [ ] Crear `src/core/dependencies.py`
+- [ ] Implementar función `get_db()` para obtener session de base de datos
+- [ ] Implementar función `get_redis()` para obtener cliente Redis
+- [ ] Implementar función `get_rules_engine()` con cache
+- [ ] Implementar función `get_pricing_engine()` con cache
+- [ ] Implementar función `get_demand_predictor()` con cache
+- [ ] Implementar función `get_inventory_manager()` con cache
+
+---
+
+## FASE 2: Database Layer & Models
+
+### Database Setup
+
+- [ ] Iniciar PostgreSQL via Docker: `docker-compose up -d postgres`
+- [ ] Verificar conexión a PostgreSQL
+- [ ] Crear `src/core/database.py` con engine y session factory
+- [ ] Implementar Base declarativa de SQLAlchemy
+- [ ] Configurar connection pooling
+- [ ] Implementar función `get_db_session()` con context manager
+
+### Database Models (SQLAlchemy)
+
+#### src/domain/models/db_models.py
+- [ ] Crear archivo para modelos de base de datos
+- [ ] Implementar modelo `MatchDB`:
+  - [ ] id (String, PK)
+  - [ ] home_team (String)
+  - [ ] away_team (String)
+  - [ ] competition (String)
+  - [ ] match_date (DateTime)
+  - [ ] status (Enum: scheduled, on_sale, sold_out, completed)
+  - [ ] venue (String)
+  - [ ] capacity (Integer)
+  - [ ] is_derby (Boolean)
+  - [ ] is_holiday (Boolean)
+  - [ ] home_position (Integer, nullable)
+  - [ ] away_position (Integer, nullable)
+  - [ ] created_at (DateTime)
+  - [ ] updated_at (DateTime)
+  - [ ] Relaciones: sales, pricing_history
+
+- [ ] Implementar modelo `ZoneDB`:
+  - [ ] id (String, PK)
+  - [ ] name (String)
+  - [ ] category (String)
+  - [ ] capacity (Integer)
+  - [ ] base_price (Float)
+  - [ ] min_price (Float)
+  - [ ] max_price (Float)
+  - [ ] price_multiplier (Float)
+  - [ ] is_active (Boolean)
+
+- [ ] Implementar modelo `SaleDB`:
+  - [ ] id (String, PK)
+  - [ ] match_id (FK)
+  - [ ] zone_id (FK)
+  - [ ] quantity (Integer)
+  - [ ] price_per_ticket (Float)
+  - [ ] total_amount (Float)
+  - [ ] customer_type (String: member, general, vip)
+  - [ ] purchase_datetime (DateTime)
+  - [ ] payment_status (String)
+  - [ ] Relación: match
+
+- [ ] Implementar modelo `PricingHistoryDB`:
+  - [ ] id (String, PK)
+  - [ ] match_id (FK)
+  - [ ] zone_id (FK)
+  - [ ] price (Float)
+  - [ ] demand_score (Float)
+  - [ ] time_factor (Float)
+  - [ ] inventory_factor (Float)
+  - [ ] competition_factor (Float)
+  - [ ] weather_factor (Float)
+  - [ ] timestamp (DateTime)
+  - [ ] Relación: match
+
+- [ ] Implementar modelo `DemandMetricsDB`:
+  - [ ] id (String, PK)
+  - [ ] match_id (FK)
+  - [ ] zone_id (FK)
+  - [ ] views (Integer)
+  - [ ] cart_additions (Integer)
+  - [ ] cart_abandonments (Integer)
+  - [ ] timestamp (DateTime)
+
+- [ ] Implementar modelo `ExternalDataDB` para cache de APIs externas:
+  - [ ] id (String, PK)
+  - [ ] source (String: weather, football_stats, transport)
+  - [ ] data_key (String)
+  - [ ] data_value (JSONB)
+  - [ ] fetched_at (DateTime)
+  - [ ] expires_at (DateTime)
+
+### Domain Models (Pydantic)
+
+#### src/domain/models/__init__.py
+- [ ] Crear archivo `__init__.py`
+- [ ] Exportar todos los modelos públicos
+
+#### src/domain/models/match.py
+- [ ] Crear enumeración `CompetitionType`
+- [ ] Crear enumeración `MatchStatus`
+- [ ] Crear modelo `Match` con Pydantic:
+  - [ ] id (str)
+  - [ ] home_team (str)
+  - [ ] away_team (str)
+  - [ ] competition (CompetitionType)
+  - [ ] date (datetime)
+  - [ ] venue (str)
+  - [ ] capacity (int)
+  - [ ] is_derby (bool)
+  - [ ] is_holiday (bool)
+  - [ ] home_position (Optional[int])
+  - [ ] away_position (Optional[int])
+  - [ ] status (MatchStatus)
+- [ ] Añadir validators para fechas futuras
+- [ ] Añadir método `days_until_match()`
+- [ ] Añadir ejemplo en Config
+
+#### src/domain/models/zone.py
+- [ ] Crear enumeración `ZoneCategory`
+- [ ] Crear modelo `Zone` con Pydantic:
+  - [ ] id (str)
+  - [ ] name (str)
+  - [ ] category (ZoneCategory)
+  - [ ] capacity (int)
+  - [ ] base_price (float)
+  - [ ] min_price (float)
+  - [ ] max_price (float)
+  - [ ] price_multiplier (float)
+- [ ] Añadir validator para min_price <= base_price <= max_price
+- [ ] Implementar método `validate_price(price: float) -> float`
+- [ ] Añadir ejemplo en Config
+
+#### src/domain/models/pricing.py
+- [ ] Crear modelo `PricingFactors`:
+  - [ ] demand_score (float, 0-1)
+  - [ ] time_factor (float, 0.5-2.0)
+  - [ ] inventory_factor (float, 0.7-1.5)
+  - [ ] competition_factor (float, 1.0-3.0)
+  - [ ] weather_factor (float, 0.9-1.1)
+- [ ] Crear modelo `ZonePricing`:
+  - [ ] zone_id (str)
+  - [ ] current_price (float)
+  - [ ] base_price (float)
+  - [ ] factors (PricingFactors)
+  - [ ] last_updated (datetime)
+  - [ ] sold_tickets (int)
+  - [ ] available_tickets (int)
+  - [ ] occupancy_percent (float)
+- [ ] Añadir método `calculate_occupancy()`
+- [ ] Crear modelo `MatchPricing`:
+  - [ ] match_id (str)
+  - [ ] zones (List[ZonePricing])
+  - [ ] total_revenue (float)
+  - [ ] total_sold (int)
+  - [ ] total_capacity (int)
+  - [ ] avg_price (float)
+  - [ ] last_calculation (datetime)
+- [ ] Añadir método `get_zone_pricing(zone_id: str)`
+
+#### src/domain/models/sale.py
+- [ ] Crear enumeración `CustomerType`
+- [ ] Crear enumeración `PaymentStatus`
+- [ ] Crear modelo `Sale`:
+  - [ ] id (str)
+  - [ ] match_id (str)
+  - [ ] zone_id (str)
+  - [ ] quantity (int)
+  - [ ] price_per_ticket (float)
+  - [ ] total_amount (float)
+  - [ ] customer_type (CustomerType)
+  - [ ] purchase_datetime (datetime)
+  - [ ] payment_status (PaymentStatus)
+- [ ] Añadir validator para total_amount = quantity * price_per_ticket
+
+### Database Initialization Script
+
+#### scripts/init_db.py
+- [ ] Crear script de inicialización
+- [ ] Implementar función `create_all_tables()`
+- [ ] Implementar función `drop_all_tables()` (con confirmación)
+- [ ] Añadir CLI con argparse para opciones
+- [ ] Ejecutar: `python scripts/init_db.py --create`
+
+### Database Seeding Script
+
+#### scripts/seed_data.py
+- [ ] Crear script de seed con datos de prueba
+- [ ] Implementar función `seed_zones()` con zonas de Son Moix
+- [ ] Implementar función `seed_matches()` con partidos de ejemplo
+- [ ] Implementar función `seed_sales()` con ventas de ejemplo
+- [ ] Implementar función `seed_pricing_history()` con histórico
+- [ ] Añadir flag `--clear` para limpiar antes de seed
+- [ ] Ejecutar: `python scripts/seed_data.py`
+
+### Alembic Migrations
+
+- [ ] Inicializar Alembic: `alembic init alembic`
+- [ ] Configurar `alembic.ini` con connection string
+- [ ] Configurar `alembic/env.py` para auto-generar migraciones
+- [ ] Crear migración inicial: `alembic revision --autogenerate -m "Initial schema"`
+- [ ] Revisar migración generada
+- [ ] Aplicar migración: `alembic upgrade head`
+
+---
+
+## FASE 3: Repository Layer
+
+### Base Repository
+
+#### src/domain/repositories/base_repository.py
+- [ ] Crear clase abstracta `BaseRepository`
+- [ ] Implementar método `get_by_id(id: str)`
+- [ ] Implementar método `get_all(skip: int, limit: int)`
+- [ ] Implementar método `create(entity: T)`
+- [ ] Implementar método `update(id: str, entity: T)`
+- [ ] Implementar método `delete(id: str)`
+- [ ] Implementar método `exists(id: str)`
+- [ ] Añadir manejo de transacciones
+
+### Specific Repositories
+
+#### src/domain/repositories/match_repository.py
+- [ ] Crear clase `MatchRepository(BaseRepository)`
+- [ ] Implementar método `get_upcoming(days: int)`
+- [ ] Implementar método `get_by_date_range(start: date, end: date)`
+- [ ] Implementar método `get_by_competition(competition: str)`
+- [ ] Implementar método `get_by_status(status: MatchStatus)`
+- [ ] Implementar método `get_by_team(team: str)`
+- [ ] Implementar conversión DB model <-> Domain model
+
+#### src/domain/repositories/zone_repository.py
+- [ ] Crear clase `ZoneRepository(BaseRepository)`
+- [ ] Implementar método `get_by_category(category: ZoneCategory)`
+- [ ] Implementar método `get_active_zones()`
+- [ ] Implementar conversión DB model <-> Domain model
+
+#### src/domain/repositories/sale_repository.py
+- [ ] Crear clase `SaleRepository(BaseRepository)`
+- [ ] Implementar método `get_by_match(match_id: str)`
+- [ ] Implementar método `get_by_zone(zone_id: str)`
+- [ ] Implementar método `get_by_match_and_zone(match_id: str, zone_id: str)`
+- [ ] Implementar método `get_sales_velocity(match_id: str, hours: int)`
+- [ ] Implementar método `get_total_sold(match_id: str, zone_id: str)`
+- [ ] Implementar agregaciones para analytics
+
+#### src/domain/repositories/pricing_repository.py
+- [ ] Crear clase `PricingHistoryRepository(BaseRepository)`
+- [ ] Implementar método `get_by_match(match_id: str)`
+- [ ] Implementar método `get_latest_price(match_id: str, zone_id: str)`
+- [ ] Implementar método `get_price_history(match_id: str, zone_id: str, hours: int)`
+- [ ] Implementar método `save_pricing(pricing: MatchPricing)`
+
+### Repository Tests
+
+- [ ] Crear `tests/unit/repositories/test_match_repository.py`
+- [ ] Crear `tests/unit/repositories/test_zone_repository.py`
+- [ ] Crear `tests/unit/repositories/test_sale_repository.py`
+- [ ] Crear `tests/unit/repositories/test_pricing_repository.py`
+- [ ] Implementar fixtures con base de datos de prueba
+- [ ] Testear CRUD completo
+- [ ] Testear métodos de búsqueda específicos
+- [ ] Ejecutar tests: `pytest tests/unit/repositories/`
+
+---
+
+## FASE 4: Business Logic - Rules Engine
+
+### Rules Engine Core
+
+#### src/domain/services/rules_engine.py
+- [ ] Crear clase `RulesEngine`
+- [ ] Implementar `__init__(config_path: str)`
+- [ ] Implementar método privado `_load_rules(path: str) -> Dict`
+- [ ] Implementar método `reload_rules()` para hot-reload
+- [ ] Implementar validación de reglas al cargar
+
+### Competition Rules
+
+- [ ] Implementar método `get_competition_multiplier(competition: str) -> float`
+- [ ] Añadir fallback a valor default si competición no existe
+- [ ] Añadir logging de multiplicador aplicado
+
+### Rival Rules
+
+- [ ] Implementar método `get_rival_multiplier(rival_team: str) -> float`
+- [ ] Implementar lógica para equipos en zona de descenso
+- [ ] Añadir cache de multiplicadores por rival
+- [ ] Añadir fallback a valor default
+
+### Time Decay Rules
+
+- [ ] Implementar método `get_time_decay_factor(days_to_match: int) -> float`
+- [ ] Iterar sobre reglas ordenadas por min_days
+- [ ] Retornar multiplicador correspondiente
+- [ ] Añadir logging del factor aplicado
+
+### Inventory Pressure Rules
+
+- [ ] Implementar método `get_inventory_pressure_factor(occupancy_percent: float) -> float`
+- [ ] Iterar sobre umbrales de ocupación
+- [ ] Retornar multiplicador correspondiente
+- [ ] Añadir lógica para promociones en baja ocupación
+
+### Special Conditions
+
+- [ ] Implementar método `get_special_multipliers(match: Match) -> Dict[str, float]`
+- [ ] Calcular holiday_multiplier si es festivo
+- [ ] Calcular weekend_multiplier si es fin de semana
+- [ ] Calcular derby_multiplier si es derby
+- [ ] Retornar diccionario con todos los multiplicadores aplicables
+
+### Price Change Validation
+
+- [ ] Implementar método `is_price_change_allowed(current: float, new: float, changes_today: int) -> tuple[bool, str]`
+- [ ] Validar límite diario de cambios
+- [ ] Validar porcentaje de cambio máximo
+- [ ] Validar horas mínimas entre cambios
+- [ ] Validar blackout period antes del partido
+- [ ] Retornar (bool, mensaje_explicativo)
+
+### Price Change Tracking
+
+- [ ] Implementar método `record_price_change(match_id: str, zone_id: str)`
+- [ ] Guardar timestamp del cambio en Redis
+- [ ] Implementar contador de cambios diarios por zona
+- [ ] Limpiar cambios antiguos (> 24 horas)
+
+### Rules Engine Tests
+
+- [ ] Crear `tests/unit/services/test_rules_engine.py`
+- [ ] Testear carga de configuración
+- [ ] Testear cada método de multiplicadores
+- [ ] Testear validación de cambios de precio
+- [ ] Testear casos edge (valores negativos, None, etc.)
+- [ ] Testear hot-reload de configuración
+- [ ] Ejecutar tests: `pytest tests/unit/services/test_rules_engine.py`
+
+---
+
+## FASE 5: Business Logic - Inventory Manager
+
+### Inventory Manager Core
+
+#### src/domain/services/inventory_manager.py
+- [ ] Crear clase `InventoryManager`
+- [ ] Inyectar `SaleRepository` y `ZoneRepository`
+- [ ] Inyectar cliente Redis para cache
+
+### Inventory Queries
+
+- [ ] Implementar método `get_zone_inventory(match_id: str, zone_id: str) -> tuple[int, int]`
+  - [ ] Consultar ventas totales desde DB
+  - [ ] Obtener capacidad de zona
+  - [ ] Calcular disponibles
+  - [ ] Retornar (vendidos, disponibles)
+- [ ] Implementar cache en Redis con TTL de 5 minutos
+- [ ] Implementar método `get_match_inventory(match_id: str) -> Dict[str, tuple[int, int]]`
+- [ ] Implementar método `get_total_occupancy(match_id: str) -> float`
+
+### Sales Velocity
+
+- [ ] Implementar método `get_sales_velocity(match_id: str, zone_id: str, hours: int = 24) -> float`
+  - [ ] Consultar ventas en últimas N horas
+  - [ ] Calcular tickets vendidos por hora
+  - [ ] Retornar velocidad
+- [ ] Implementar método `predict_sellout_time(match_id: str, zone_id: str) -> Optional[datetime]`
+  - [ ] Usar velocidad de venta actual
+  - [ ] Calcular tickets restantes
+  - [ ] Proyectar fecha de agotamiento
+
+### Inventory Alerts
+
+- [ ] Implementar método `check_inventory_alerts(match_id: str) -> List[Dict]`
+  - [ ] Detectar zonas con > 90% ocupación
+  - [ ] Detectar zonas con < 20% ocupación cerca del partido
+  - [ ] Detectar cambios bruscos en velocidad de venta
+  - [ ] Retornar lista de alertas
+
+### Cache Management
+
+- [ ] Implementar método `invalidate_cache(match_id: str, zone_id: Optional[str] = None)`
+- [ ] Implementar método `warm_cache(match_ids: List[str])`
+- [ ] Implementar limpieza automática de cache expirado
+
+### Inventory Manager Tests
+
+- [ ] Crear `tests/unit/services/test_inventory_manager.py`
+- [ ] Testear cálculos de inventario
+- [ ] Testear cálculos de velocidad de venta
+- [ ] Testear predicciones
+- [ ] Testear cache (mock Redis)
+- [ ] Testear alertas
+- [ ] Ejecutar tests: `pytest tests/unit/services/test_inventory_manager.py`
+
+---
+
+## FASE 6: Business Logic - Pricing Engine
+
+### Pricing Engine Core
+
+#### src/domain/services/pricing_engine.py
+- [ ] Crear clase `PricingEngine`
+- [ ] Inyectar `RulesEngine`
+- [ ] Inyectar `DemandPredictor`
+- [ ] Inyectar `InventoryManager`
+- [ ] Inyectar `MatchRepository` y `ZoneRepository`
+
+### Main Pricing Method
+
+- [ ] Implementar método `calculate_match_pricing(match: Match, zones: List[Zone], current_datetime: Optional[datetime]) -> MatchPricing`
+  - [ ] Iterar sobre todas las zonas
+  - [ ] Llamar a `_calculate_zone_price` para cada zona
+  - [ ] Agregar métricas totales
+  - [ ] Calcular precio promedio
+  - [ ] Retornar `MatchPricing` completo
+- [ ] Añadir logging detallado de cada cálculo
+- [ ] Añadir métricas Prometheus
+
+### Zone Pricing Calculation
+
+- [ ] Implementar método `_calculate_zone_price(match: Match, zone: Zone, current_datetime: datetime) -> ZonePricing`
+  - [ ] Calcular todos los factores (`_calculate_pricing_factors`)
+  - [ ] Obtener precio base de la zona
+  - [ ] Aplicar multiplicador de zona
+  - [ ] Aplicar todos los factores calculados
+  - [ ] Validar límites de precio con `zone.validate_price()`
+  - [ ] Obtener inventario actual
+  - [ ] Construir y retornar `ZonePricing`
+
+### Pricing Factors Calculation
+
+- [ ] Implementar método `_calculate_pricing_factors(match: Match, zone: Zone, current_datetime: datetime) -> PricingFactors`
+  - [ ] Calcular días hasta el partido
+  - [ ] Obtener demand_score del ML model
+  - [ ] Obtener time_factor del RulesEngine
+  - [ ] Calcular occupancy y obtener inventory_factor
+  - [ ] Obtener competition_factor del RulesEngine
+  - [ ] Aplicar rival_multiplier
+  - [ ] Aplicar special conditions (derby, holiday, etc.)
+  - [ ] Obtener weather_factor (integración futura)
+  - [ ] Construir y retornar `PricingFactors`
+
+### Price Change Decision
+
+- [ ] Implementar método `should_update_price(match_id: str, zone_id: str, current_price: float, new_price: float) -> tuple[bool, str]`
+  - [ ] Consultar cuántos cambios se han hecho hoy
+  - [ ] Validar con RulesEngine
+  - [ ] Calcular diferencia de precio
+  - [ ] Validar umbral mínimo de cambio (evitar cambios triviales)
+  - [ ] Retornar decisión y razón
+
+### Batch Pricing
+
+- [ ] Implementar método `calculate_all_upcoming_matches(days: int = 30) -> List[MatchPricing]`
+  - [ ] Obtener partidos próximos
+  - [ ] Calcular pricing para cada uno
+  - [ ] Manejar errores individualmente (no fallar todo si uno falla)
+  - [ ] Retornar lista de pricings
+
+### Price History
+
+- [ ] Implementar método `save_pricing_to_history(pricing: MatchPricing)`
+  - [ ] Iterar sobre zonas
+  - [ ] Guardar en PricingHistoryDB
+  - [ ] Commit transacción
+
+### Pricing Engine Tests
+
+- [ ] Crear `tests/unit/services/test_pricing_engine.py`
+- [ ] Testear cálculo completo de pricing
+- [ ] Testear cálculo de factores individuales
+- [ ] Testear validación de límites de precio
+- [ ] Testear decisión de cambio de precio
+- [ ] Testear casos edge (partido pasado, sin inventario, etc.)
+- [ ] Mockear dependencias (RulesEngine, DemandPredictor, etc.)
+- [ ] Ejecutar tests: `pytest tests/unit/services/test_pricing_engine.py`
+
+---
+
+## FASE 7: Machine Learning - Demand Prediction (MVP)
+
+### Feature Engineering
+
+#### src/ml/features/match_features.py
+- [ ] Crear clase `MatchFeatureExtractor`
+- [ ] Implementar método `extract_competition_features(match: Match) -> Dict`
+  - [ ] One-hot encoding de competition type
+  - [ ] Importancia del partido (league position, etc.)
+  - [ ] Is derby flag
+- [ ] Implementar método `extract_rival_features(match: Match) -> Dict`
+  - [ ] Estadísticas históricas del rival
+  - [ ] Posición en liga del rival
+  - [ ] Racha reciente del rival
+- [ ] Implementar método `extract_home_team_features(match: Match) -> Dict`
+  - [ ] Posición en liga local
+  - [ ] Racha de resultados
+  - [ ] Goles a favor/contra
+- [ ] Implementar método `extract_all(match: Match) -> Dict`
+
+#### src/ml/features/temporal_features.py
+- [ ] Crear clase `TemporalFeatureExtractor`
+- [ ] Implementar método `extract_date_features(match_date: datetime) -> Dict`
+  - [ ] Day of week (0-6)
+  - [ ] Is weekend
+  - [ ] Is holiday
+  - [ ] Month
+  - [ ] Hour of day
+- [ ] Implementar método `extract_season_features(match_date: datetime) -> Dict`
+  - [ ] Season (2023/2024, etc.)
+  - [ ] Matchday number (jornada)
+- [ ] Implementar método `extract_all(match_date: datetime) -> Dict`
+
+#### src/ml/features/external_features.py
+- [ ] Crear clase `ExternalFeatureExtractor`
+- [ ] Implementar método `extract_weather_features(match: Match) -> Dict`
+  - [ ] Temperature (placeholder por ahora)
+  - [ ] Precipitation probability
+  - [ ] Wind speed
+- [ ] Implementar método `extract_transport_features(match: Match) -> Dict`
+  - [ ] Public transport availability
+  - [ ] Traffic conditions (placeholder)
+- [ ] Implementar método `extract_all(match: Match) -> Dict`
+
+### ML Model - Demand Predictor (Simple MVP)
+
+#### src/ml/models/base_model.py
+- [ ] Crear clase abstracta `BaseMLModel`
+- [ ] Definir método abstracto `train(X, y)`
+- [ ] Definir método abstracto `predict(X)`
+- [ ] Definir método abstracto `save(path: str)`
+- [ ] Definir método abstracto `load(path: str)`
+- [ ] Implementar método `evaluate(X, y) -> Dict[str, float]`
+
+#### src/ml/models/demand_model.py
+- [ ] Crear clase `DemandModel(BaseMLModel)`
+- [ ] Usar RandomForestRegressor o XGBoost como base (configurable)
+- [ ] Implementar método `train(historical_sales: List[Sale], matches: List[Match])`
+  - [ ] Extraer features de matches
+  - [ ] Preparar target (% de ocupación o velocidad de venta)
+  - [ ] Split train/validation
+  - [ ] Entrenar modelo
+  - [ ] Evaluar en validation
+  - [ ] Guardar métricas
+- [ ] Implementar método `predict(match: Match, zone: Zone, days_to_match: int) -> float`
+  - [ ] Extraer features del match
+  - [ ] Añadir days_to_match como feature
+  - [ ] Predecir demand_score (0-1)
+  - [ ] Aplicar calibración si es necesario
+  - [ ] Retornar score
+
+### Training Pipeline
+
+#### src/ml/training/train_demand.py
+- [ ] Crear script de entrenamiento
+- [ ] Implementar función `load_training_data() -> tuple[List[Match], List[Sale]]`
+  - [ ] Cargar histórico de partidos
+  - [ ] Cargar histórico de ventas
+  - [ ] Filtrar datos incompletos
+- [ ] Implementar función `prepare_features_and_target(matches, sales) -> tuple[pd.DataFrame, pd.Series]`
+  - [ ] Combinar matches y sales
+  - [ ] Extraer todas las features
+  - [ ] Calcular target (occupancy rate a X días del partido)
+- [ ] Implementar función `train_model(X, y, config: Dict) -> DemandModel`
+  - [ ] Instanciar modelo
+  - [ ] Entrenar
+  - [ ] Evaluar
+  - [ ] Guardar
+- [ ] Implementar función `main()`
+- [ ] Añadir CLI con argparse
+- [ ] Ejecutar: `python src/ml/training/train_demand.py`
+
+### Model Evaluation
+
+#### src/ml/training/evaluate.py
+- [ ] Crear script de evaluación
+- [ ] Implementar función `load_model(path: str) -> DemandModel`
+- [ ] Implementar función `load_test_data() -> tuple[pd.DataFrame, pd.Series]`
+- [ ] Implementar función `evaluate_model(model, X_test, y_test) -> Dict`
+  - [ ] Calcular MAE, RMSE, R²
+  - [ ] Generar gráficas de predicciones vs real
+  - [ ] Guardar métricas en archivo JSON
+- [ ] Implementar función `main()`
+- [ ] Ejecutar: `python src/ml/training/evaluate.py`
+
+### Demand Predictor Service
+
+#### src/domain/services/demand_predictor.py
+- [ ] Crear clase `DemandPredictor`
+- [ ] Cargar modelo entrenado en `__init__`
+- [ ] Implementar método `predict_demand(match: Match, zone: Zone, days_to_match: int) -> float`
+  - [ ] Extraer features
+  - [ ] Llamar a modelo ML
+  - [ ] Post-procesar predicción
+  - [ ] Aplicar límites (0-1)
+  - [ ] Retornar score
+- [ ] Implementar método `reload_model(path: str)`
+- [ ] Implementar fallback si modelo no disponible (usar heurística simple)
+
+### ML Tests
+
+- [ ] Crear `tests/unit/ml/test_feature_extractors.py`
+- [ ] Testear extracción de cada tipo de feature
+- [ ] Crear `tests/unit/ml/test_demand_model.py`
+- [ ] Testear entrenamiento con datos sintéticos
+- [ ] Testear predicción
+- [ ] Testear save/load de modelo
+- [ ] Ejecutar tests: `pytest tests/unit/ml/`
+
+---
+
+## FASE 8: FastAPI Application
+
+### FastAPI Setup
+
+#### src/api/main.py
+- [ ] Crear instancia de FastAPI con configuración
+- [ ] Configurar metadata (title, description, version)
+- [ ] Implementar lifespan context manager para startup/shutdown
+- [ ] Configurar CORS middleware
+- [ ] Añadir middleware para logging de requests
+- [ ] Añadir middleware para manejo de errores
+- [ ] Incluir routers
+
+### Health & Status Endpoints
+
+- [ ] Implementar endpoint `GET /health`
+  - [ ] Verificar conexión DB
+  - [ ] Verificar conexión Redis
+  - [ ] Retornar status + versión
+- [ ] Implementar endpoint `GET /status/ready`
+  - [ ] Verificar que modelo ML está cargado
+  - [ ] Verificar que configuración está cargada
+- [ ] Implementar endpoint `GET /status/metrics`
+  - [ ] Exponer métricas de Prometheus
+
+### Pricing Endpoints
+
+#### src/api/pricing.py
+- [ ] Crear router con prefijo `/api/v1/pricing`
+- [ ] Implementar `GET /match/{match_id}`
+  - [ ] Validar match_id
+  - [ ] Obtener match desde repositorio
+  - [ ] Obtener zones
+  - [ ] Calcular pricing con PricingEngine
+  - [ ] Retornar `MatchPricing`
+  - [ ] Manejar errores (404 si no existe, 500 si falla cálculo)
+
+- [ ] Implementar `GET /match/{match_id}/zone/{zone_id}`
+  - [ ] Obtener pricing completo del match
+  - [ ] Filtrar zona específica
+  - [ ] Retornar `ZonePricing`
+
+- [ ] Implementar `GET /upcoming`
+  - [ ] Query param: `days` (default 30, max 90)
+  - [ ] Obtener matches próximos
+  - [ ] Calcular pricing para cada uno
+  - [ ] Retornar `List[MatchPricing]`
+
+- [ ] Implementar `POST /match/{match_id}/recalculate`
+  - [ ] Forzar recálculo de precios
+  - [ ] Guardar en cache
+  - [ ] Guardar en histórico
+  - [ ] Retornar status
+
+- [ ] Implementar `GET /match/{match_id}/history`
+  - [ ] Query param: `hours` (default 24)
+  - [ ] Obtener histórico de precios
+  - [ ] Retornar series temporal
+
+### Admin Endpoints
+
+#### src/api/admin.py
+- [ ] Crear router con prefijo `/api/v1/admin`
+- [ ] Implementar autenticación básica (JWT o API key)
+
+- [ ] Implementar `POST /rules/reload`
+  - [ ] Recargar configuración de reglas
+  - [ ] Retornar status
+
+- [ ] Implementar `GET /rules`
+  - [ ] Retornar configuración actual de reglas
+  - [ ] Formato JSON
+
+- [ ] Implementar `PUT /rules`
+  - [ ] Actualizar reglas (validar antes)
+  - [ ] Guardar en archivo YAML
+  - [ ] Recargar
+
+- [ ] Implementar `GET /zones`
+  - [ ] Listar todas las zonas
+  - [ ] Filtros opcionales
+
+- [ ] Implementar `PUT /zones/{zone_id}`
+  - [ ] Actualizar configuración de zona
+  - [ ] Validar precios min <= base <= max
+
+- [ ] Implementar `GET /matches`
+  - [ ] Listar partidos
+  - [ ] Filtros: date_from, date_to, competition, status
+  - [ ] Paginación
+
+- [ ] Implementar `POST /matches`
+  - [ ] Crear nuevo partido
+  - [ ] Validar datos
+
+- [ ] Implementar `PUT /matches/{match_id}`
+  - [ ] Actualizar partido
+  - [ ] Validar cambios
+
+- [ ] Implementar `GET /sales/summary`
+  - [ ] Resumen de ventas por partido
+  - [ ] Agregaciones
+
+- [ ] Implementar `GET /pricing/alerts`
+  - [ ] Obtener alertas de inventario
+  - [ ] Zonas con problemas de ocupación
+
+### Analytics Endpoints
+
+#### src/api/analytics.py
+- [ ] Crear router con prefijo `/api/v1/analytics`
+
+- [ ] Implementar `GET /revenue`
+  - [ ] Query params: date_from, date_to
+  - [ ] Calcular revenue total
+  - [ ] Agrupar por período (day, week, month)
+
+- [ ] Implementar `GET /occupancy`
+  - [ ] Estadísticas de ocupación por zona
+  - [ ] Promedios y tendencias
+
+- [ ] Implementar `GET /price-elasticity`
+  - [ ] Análisis de elasticidad precio-demanda
+  - [ ] Por zona y competición
+
+- [ ] Implementar `GET /predictions`
+  - [ ] Predicciones de demanda futura
+  - [ ] Proyecciones de revenue
+
+### Response Models
+
+#### src/api/responses.py
+- [ ] Crear modelos Pydantic para respuestas consistentes
+- [ ] Modelo `SuccessResponse`
+- [ ] Modelo `ErrorResponse`
+- [ ] Modelo `PaginatedResponse`
+
+### Exception Handlers
+
+- [ ] Implementar handler para `ValidationError`
+- [ ] Implementar handler para `DatabaseError`
+- [ ] Implementar handler para `PricingError`
+- [ ] Implementar handler para excepciones genéricas
+
+### API Documentation
+
+- [ ] Verificar que Swagger UI está accesible en `/docs`
+- [ ] Verificar que ReDoc está accesible en `/redoc`
+- [ ] Añadir ejemplos a cada endpoint
+- [ ] Añadir descripciones detalladas
+- [ ] Documentar códigos de error posibles
+
+### API Tests
+
+- [ ] Crear `tests/integration/api/test_pricing_endpoints.py`
+- [ ] Crear `tests/integration/api/test_admin_endpoints.py`
+- [ ] Crear `tests/integration/api/test_analytics_endpoints.py`
+- [ ] Usar `TestClient` de FastAPI
+- [ ] Testear casos exitosos
+- [ ] Testear casos de error (404, 422, 500)
+- [ ] Testear validaciones
+- [ ] Ejecutar tests: `pytest tests/integration/api/`
+
+---
+
+## FASE 9: Background Workers
+
+### Worker Infrastructure
+
+#### src/workers/base_worker.py
+- [ ] Crear clase base `BaseWorker`
+- [ ] Implementar método abstracto `run()`
+- [ ] Implementar manejo de señales (SIGTERM, SIGINT)
+- [ ] Implementar logging
+- [ ] Implementar health check
+
+### Price Update Worker
+
+#### src/workers/price_updater.py
+- [ ] Crear clase `PriceUpdaterWorker(BaseWorker)`
+- [ ] Inyectar PricingEngine
+- [ ] Implementar método `run()`
+  - [ ] Loop infinito con intervalo configurable
+  - [ ] Obtener matches próximos (X días)
+  - [ ] Calcular pricing para cada uno
+  - [ ] Decidir si actualizar precio
+  - [ ] Guardar en Redis (cache)
+  - [ ] Guardar en histórico (DB)
+  - [ ] Dormir hasta próxima ejecución
+- [ ] Implementar manejo de errores (retry con backoff)
+- [ ] Añadir métricas (tiempo de ejecución, matches procesados)
+
+### Data Collection Worker
+
+#### src/workers/data_collector.py
+- [ ] Crear clase `DataCollectorWorker(BaseWorker)`
+- [ ] Inyectar integraciones externas
+- [ ] Implementar método `run()`
+  - [ ] Loop con intervalo configurable
+  - [ ] Recolectar datos de football API
+  - [ ] Recolectar datos de weather API
+  - [ ] Recolectar datos de analytics
+  - [ ] Guardar en cache/DB
+  - [ ] Dormir hasta próxima ejecución
+- [ ] Implementar rate limiting
+- [ ] Implementar retry con exponential backoff
+
+### Model Retraining Worker
+
+#### src/workers/model_retrainer.py
+- [ ] Crear clase `ModelRetrainerWorker(BaseWorker)`
+- [ ] Implementar método `run()`
+  - [ ] Ejecutar semanalmente (cron-like)
+  - [ ] Cargar datos históricos nuevos
+  - [ ] Re-entrenar modelo de demanda
+  - [ ] Evaluar modelo nuevo vs anterior
+  - [ ] Si mejora, reemplazar modelo en producción
+  - [ ] Notificar resultado
+- [ ] Implementar versionado de modelos
+- [ ] Implementar rollback si modelo nuevo es peor
+
+### Worker Orchestration
+
+#### src/workers/__main__.py
+- [ ] Crear script principal para ejecutar workers
+- [ ] Usar argparse para seleccionar worker
+- [ ] Implementar `main()`:
+  - [ ] Cargar configuración
+  - [ ] Setup logging
+  - [ ] Instanciar worker seleccionado
+  - [ ] Ejecutar worker
+- [ ] Ejemplo: `python -m src.workers price_updater`
+
+### Worker Tests
+
+- [ ] Crear `tests/unit/workers/test_price_updater.py`
+- [ ] Crear `tests/unit/workers/test_data_collector.py`
+- [ ] Mockear dependencias externas
+- [ ] Testear lógica de cada worker
+- [ ] Testear manejo de errores
+- [ ] Ejecutar tests: `pytest tests/unit/workers/`
+
+---
+
+## FASE 10: External Integrations
+
+### Football Data API
+
+#### src/integrations/football_data.py
+- [ ] Crear clase `FootballDataAPI`
+- [ ] Configurar API key desde variables de entorno
+- [ ] Implementar método `get_team_standings(league: str, season: str) -> Dict`
+- [ ] Implementar método `get_team_stats(team_id: str) -> Dict`
+- [ ] Implementar método `get_match_details(match_id: str) -> Dict`
+- [ ] Implementar método `get_team_recent_form(team_id: str, matches: int) -> List`
+- [ ] Implementar caching de respuestas (6 horas)
+- [ ] Implementar rate limiting
+- [ ] Implementar retry con exponential backoff
+- [ ] Manejar errores de API (401, 429, 500, etc.)
+
+### Weather API
+
+#### src/integrations/weather_api.py
+- [ ] Crear clase `WeatherAPI`
+- [ ] Configurar API key desde variables de entorno
+- [ ] Implementar método `get_forecast(lat: float, lon: float, date: datetime) -> Dict`
+  - [ ] Temperature
+  - [ ] Precipitation probability
+  - [ ] Wind speed
+  - [ ] Weather condition
+- [ ] Implementar caching de respuestas (1 hora)
+- [ ] Implementar fallback si API falla (usar datos históricos)
+- [ ] Implementar método `get_historical_weather(lat: float, lon: float, date: datetime) -> Dict`
+
+### Google Analytics Integration
+
+#### src/integrations/analytics.py
+- [ ] Crear clase `GoogleAnalyticsIntegration`
+- [ ] Usar biblioteca oficial de Google Analytics Data API
+- [ ] Configurar credenciales (service account)
+- [ ] Implementar método `get_page_views(match_id: str, date_range: tuple) -> int`
+- [ ] Implementar método `get_cart_additions(match_id: str, date_range: tuple) -> int`
+- [ ] Implementar método `get_cart_abandonments(match_id: str, date_range: tuple) -> int`
+- [ ] Implementar método `get_conversion_rate(match_id: str) -> float`
+- [ ] Cachear métricas por 30 minutos
+
+### Ticketing System Integration (Mock)
+
+#### src/integrations/ticketing_system.py
+- [ ] Crear clase `TicketingSystemAPI`
+- [ ] Implementar método `get_available_inventory(match_id: str) -> Dict[str, int]`
+- [ ] Implementar método `reserve_tickets(match_id: str, zone_id: str, quantity: int) -> str`
+- [ ] Implementar método `confirm_purchase(reservation_id: str) -> bool`
+- [ ] Implementar método `cancel_reservation(reservation_id: str) -> bool`
+- [ ] Implementar webhook receiver para actualizaciones de venta
+- [ ] Por ahora, mock con datos locales
+
+### Integration Tests
+
+- [ ] Crear `tests/integration/test_football_data.py`
+- [ ] Crear `tests/integration/test_weather_api.py`
+- [ ] Crear `tests/integration/test_analytics.py`
+- [ ] Usar VCR.py para grabar/replay requests HTTP
+- [ ] Testear manejo de errores de API
+- [ ] Testear rate limiting
+- [ ] Ejecutar tests: `pytest tests/integration/ -k integration`
+
+---
+
+## FASE 11: Redis Caching Layer
+
+### Redis Client Setup
+
+#### src/core/redis_client.py
+- [ ] Crear clase `RedisClient`
+- [ ] Implementar conexión a Redis
+- [ ] Implementar connection pooling
+- [ ] Implementar health check
+
+### Cache Service
+
+#### src/core/cache_service.py
+- [ ] Crear clase `CacheService`
+- [ ] Implementar método `get(key: str) -> Optional[Any]`
+- [ ] Implementar método `set(key: str, value: Any, ttl: int)`
+- [ ] Implementar método `delete(key: str)`
+- [ ] Implementar método `exists(key: str) -> bool`
+- [ ] Implementar método `get_many(keys: List[str]) -> Dict[str, Any]`
+- [ ] Implementar método `set_many(mapping: Dict[str, Any], ttl: int)`
+- [ ] Implementar serialización (JSON o pickle)
+- [ ] Implementar deserialización
+
+### Cache Strategies
+
+- [ ] Implementar estrategia de cache para pricing:
+  - [ ] Key: `pricing:match:{match_id}`
+  - [ ] TTL: 5 minutos
+- [ ] Implementar estrategia de cache para inventario:
+  - [ ] Key: `inventory:match:{match_id}:zone:{zone_id}`
+  - [ ] TTL: 2 minutos
+- [ ] Implementar estrategia de cache para datos externos:
+  - [ ] Key: `external:{source}:{key}`
+  - [ ] TTL: 1-6 horas según fuente
+- [ ] Implementar invalidación selectiva de cache
+
+### Cache Decorators
+
+#### src/utils/cache_decorators.py
+- [ ] Crear decorator `@cached(ttl: int, key_prefix: str)`
+- [ ] Implementar lógica de cache transparente
+- [ ] Ejemplo:
+  ```python
+  @cached(ttl=300, key_prefix="pricing")
+  def calculate_pricing(match_id: str):
+      # expensive calculation
+      pass
+  ```
+
+### Cache Tests
+
+- [ ] Crear `tests/unit/core/test_cache_service.py`
+- [ ] Testear operaciones básicas (get, set, delete)
+- [ ] Testear TTL
+- [ ] Testear serialización/deserialización
+- [ ] Usar fakeredis para tests
+- [ ] Ejecutar tests: `pytest tests/unit/core/test_cache_service.py`
+
+---
+
+## FASE 12: Monitoring & Observability
+
+### Logging Setup
+
+- [ ] Configurar logging estructurado (JSON)
+- [ ] Configurar diferentes niveles por módulo
+- [ ] Configurar rotación de logs
+- [ ] Configurar logs a stdout para Docker
+
+### Prometheus Metrics
+
+#### src/utils/metrics.py
+- [ ] Instalar `prometheus_client`
+- [ ] Crear métricas:
+  - [ ] Counter: `pricing_calculations_total`
+  - [ ] Histogram: `pricing_calculation_duration_seconds`
+  - [ ] Gauge: `active_matches`
+  - [ ] Gauge: `cached_prices`
+  - [ ] Counter: `api_requests_total` (por endpoint, status)
+  - [ ] Histogram: `api_request_duration_seconds`
+  - [ ] Counter: `external_api_calls_total` (por servicio)
+  - [ ] Counter: `external_api_errors_total`
+- [ ] Implementar middleware de FastAPI para métricas automáticas
+- [ ] Exponer endpoint `/metrics` para Prometheus
+
+### Prometheus Configuration
+
+- [ ] Añadir servicio Prometheus a docker-compose.yml
+- [ ] Crear `prometheus.yml` con configuración
+- [ ] Configurar scrape de métricas de la API
+- [ ] Configurar retention de datos
+
+### Grafana Setup
+
+- [ ] Añadir servicio Grafana a docker-compose.yml
+- [ ] Crear datasource apuntando a Prometheus
+- [ ] Crear dashboard "Smart Pricing Overview":
+  - [ ] Panel: Request rate por endpoint
+  - [ ] Panel: Request duration (p50, p95, p99)
+  - [ ] Panel: Error rate
+  - [ ] Panel: Pricing calculations/min
+  - [ ] Panel: Cache hit rate
+  - [ ] Panel: Active matches
+  - [ ] Panel: External API calls
+- [ ] Crear dashboard "Business Metrics":
+  - [ ] Panel: Revenue por día
+  - [ ] Panel: Tickets vendidos por día
+  - [ ] Panel: Precio promedio por zona
+  - [ ] Panel: Ocupación por zona
+- [ ] Exportar dashboards a JSON (version control)
+
+### Alerting
+
+- [ ] Configurar alertas en Prometheus:
+  - [ ] High error rate (> 5%)
+  - [ ] High latency (p95 > 2s)
+  - [ ] Redis down
+  - [ ] PostgreSQL down
+  - [ ] No pricing updates en última hora
+- [ ] Configurar Alertmanager (opcional para MVP)
+- [ ] Configurar notificaciones (email, Slack)
+
+### Distributed Tracing (Opcional)
+
+- [ ] Instalar OpenTelemetry SDK
+- [ ] Configurar tracing automático para FastAPI
+- [ ] Configurar tracing para llamadas DB
+- [ ] Configurar tracing para llamadas Redis
+- [ ] Configurar export a Jaeger o Zipkin
+- [ ] Añadir Jaeger a docker-compose.yml
+
+---
+
+## FASE 13: Testing Completo
+
+### Unit Tests Comprehensivos
+
+- [ ] Asegurar cobertura > 80% en domain/services/
+- [ ] Asegurar cobertura > 70% en domain/repositories/
+- [ ] Asegurar cobertura > 70% en ml/
+- [ ] Ejecutar: `pytest --cov=src tests/unit/ --cov-report=html`
+- [ ] Revisar report de cobertura
+
+### Integration Tests
+
+- [ ] Testear flujo completo: Match creation → Pricing calculation → API response
+- [ ] Testear workers end-to-end (mock de sleep)
+- [ ] Testear integraciones con APIs externas (usando VCR.py)
+- [ ] Ejecutar: `pytest tests/integration/`
+
+### Load Testing
+
+#### tests/load/locustfile.py
+- [ ] Instalar Locust: `pip install locust`
+- [ ] Crear archivo `tests/load/locustfile.py`
+- [ ] Definir user behavior:
+  - [ ] GET /api/v1/pricing/match/{id}
+  - [ ] GET /api/v1/pricing/upcoming
+- [ ] Ejecutar: `locust -f tests/load/locustfile.py`
+- [ ] Simular 100-1000 usuarios concurrentes
+- [ ] Medir throughput, latencias p50/p95/p99
+- [ ] Identificar bottlenecks
+
+### E2E Tests (Opcional)
+
+- [ ] Instalar Playwright: `pip install playwright`
+- [ ] Crear tests E2E para dashboard (si implementado)
+- [ ] Testear flujo completo de usuario
+- [ ] Ejecutar: `pytest tests/e2e/`
+
+---
+
+## FASE 14: Containerización & Deployment
+
+### Dockerfiles
+
+#### docker/Dockerfile.api
+- [ ] Crear Dockerfile multi-stage
+- [ ] Stage 1: Builder (instalar dependencias)
+- [ ] Stage 2: Runtime (copiar solo necesario)
+- [ ] Exponer puerto 8000
+- [ ] CMD: `uvicorn src.api.main:app --host 0.0.0.0 --port 8000`
+
+#### docker/Dockerfile.worker
+- [ ] Crear Dockerfile similar a API
+- [ ] CMD: `python -m src.workers price_updater`
+- [ ] Permitir override via args
+
+#### docker/Dockerfile.dashboard (si aplica)
+- [ ] Node multi-stage build
+- [ ] Stage 1: Build de React/Next.js
+- [ ] Stage 2: Nginx para servir estáticos
+- [ ] Exponer puerto 3000 o 80
+
+### Docker Compose - Producción
+
+#### docker-compose.prod.yml
+- [ ] Crear archivo separado para producción
+- [ ] Configurar restart policies
+- [ ] Configurar health checks
+- [ ] Configurar resource limits (CPU, memory)
+- [ ] Configurar networks
+- [ ] Configurar volumes persistentes
+- [ ] Usar secrets para credenciales
+
+### Docker Compose - Desarrollo
+
+- [ ] Verificar `docker-compose.yml` existente
+- [ ] Asegurar hot-reload de código (volume mounts)
+- [ ] Asegurar que todos los servicios arrancan correctamente
+- [ ] Ejecutar: `docker-compose up -d`
+- [ ] Verificar logs: `docker-compose logs -f`
+
+### CI/CD Pipeline
+
+#### .github/workflows/ci.yml (ejemplo GitHub Actions)
+- [ ] Crear archivo de workflow
+- [ ] Job: Linting
+  - [ ] Ejecutar black, flake8, mypy
+- [ ] Job: Unit Tests
+  - [ ] Setup Python, instalar deps
+  - [ ] Ejecutar pytest con coverage
+  - [ ] Upload coverage report
+- [ ] Job: Build Docker Images
+  - [ ] Build API image
+  - [ ] Build worker image
+  - [ ] Push a registry (opcional)
+- [ ] Trigger: push a main, pull requests
+
+#### .github/workflows/deploy.yml (ejemplo)
+- [ ] Crear workflow de deploy
+- [ ] Trigger: tag v*
+- [ ] Build images
+- [ ] Push a Docker registry (DockerHub, ECR, GCR)
+- [ ] Deploy a ambiente (Railway, Render, AWS, etc.)
+
+### Infrastructure as Code (Opcional)
+
+- [ ] Crear scripts Terraform para provisionar infraestructura
+- [ ] O usar Docker Swarm/Kubernetes manifests
+- [ ] Documentar proceso de deployment
+
+---
+
+## FASE 15: Dashboard Frontend (Opcional pero Recomendado)
+
+### Dashboard Setup
+
+- [ ] Crear carpeta `dashboard/`
+- [ ] Inicializar proyecto: `npx create-next-app@latest dashboard` o similar
+- [ ] Instalar dependencias:
+  - [ ] axios o fetch
+  - [ ] recharts o chart.js
+  - [ ] tailwindcss
+  - [ ] shadcn/ui components
+  - [ ] zustand o redux
+
+### Dashboard Pages/Views
+
+#### Dashboard Home
+- [ ] Crear página principal (`/`)
+- [ ] Mostrar métricas clave:
+  - [ ] Revenue total
+  - [ ] Tickets vendidos hoy
+  - [ ] Partidos próximos
+  - [ ] Ocupación promedio
+- [ ] Gráfico de ventas en el tiempo
+- [ ] Alertas importantes
+
+#### Matches List
+- [ ] Crear página `/matches`
+- [ ] Listar todos los partidos próximos
+- [ ] Filtros: competición, fecha, estado
+- [ ] Click en partido → detalle
+
+#### Match Detail
+- [ ] Crear página `/matches/[id]`
+- [ ] Mostrar información del partido
+- [ ] Precios actuales por zona (tabla)
+- [ ] Gráfico de evolución de precios
+- [ ] Gráfico de velocidad de venta
+- [ ] Botón para forzar recálculo de precios
+
+#### Zone Management
+- [ ] Crear página `/zones`
+- [ ] Listar todas las zonas
+- [ ] Editar configuración de zona
+- [ ] Precios base, min, max
+- [ ] Multiplicadores
+
+#### Pricing Rules
+- [ ] Crear página `/rules`
+- [ ] Mostrar reglas actuales
+- [ ] Editor YAML o formulario
+- [ ] Validar antes de guardar
+- [ ] Botón para recargar reglas
+
+#### Analytics
+- [ ] Crear página `/analytics`
+- [ ] Gráficos de revenue
+- [ ] Gráficos de ocupación
+- [ ] Análisis de elasticidad
+- [ ] Comparativas entre partidos
+
+### API Client
+
+#### dashboard/src/api/client.ts
+- [ ] Crear cliente axios configurado
+- [ ] Base URL desde env variable
+- [ ] Manejo de errores
+- [ ] Interceptors para auth (si aplica)
+
+#### dashboard/src/api/pricing.ts
+- [ ] Función `getMatchPricing(matchId: string)`
+- [ ] Función `getUpcomingMatches(days: number)`
+- [ ] Función `recalculatePricing(matchId: string)`
+- [ ] Función `getPricingHistory(matchId: string, hours: number)`
+
+#### dashboard/src/api/admin.ts
+- [ ] Función `getRules()`
+- [ ] Función `updateRules(rules: any)`
+- [ ] Función `getZones()`
+- [ ] Función `updateZone(zoneId: string, data: any)`
+
+### State Management
+
+- [ ] Configurar Zustand stores o Redux slices
+- [ ] Store para matches
+- [ ] Store para pricing
+- [ ] Store para configuración
+- [ ] Store para user/auth (si aplica)
+
+### Components
+
+- [ ] Crear componente `PricingCard` para mostrar precio de zona
+- [ ] Crear componente `MatchCard` para listar partidos
+- [ ] Crear componente `PriceHistoryChart`
+- [ ] Crear componente `OccupancyChart`
+- [ ] Crear componente `Alert` para notificaciones
+- [ ] Crear componente `ZoneEditor` para editar zonas
+- [ ] Crear componente `RulesEditor`
+
+### Authentication (Opcional)
+
+- [ ] Implementar login simple (JWT)
+- [ ] Protected routes
+- [ ] Auth context/provider
+
+### Build & Deploy Dashboard
+
+- [ ] Build para producción: `npm run build`
+- [ ] Testear build localmente
+- [ ] Crear Dockerfile
+- [ ] Añadir a docker-compose
+- [ ] Deploy junto con API
+
+---
+
+## FASE 16: Documentation
+
+### API Documentation
+
+- [ ] Asegurar que OpenAPI spec está completa
+- [ ] Añadir ejemplos a cada endpoint
+- [ ] Añadir descripciones detalladas
+- [ ] Documentar errores posibles
+- [ ] Exportar spec a archivo JSON/YAML
+
+### Code Documentation
+
+- [ ] Revisar docstrings en todas las clases públicas
+- [ ] Usar formato Google docstring
+- [ ] Documentar parámetros, retornos, excepciones
+- [ ] Generar documentación con Sphinx (opcional):
+  - [ ] Instalar sphinx
+  - [ ] Inicializar: `sphinx-quickstart docs/`
+  - [ ] Configurar autodoc
+  - [ ] Build: `cd docs && make html`
+
+### User Documentation
+
+#### README.md
+- [ ] Describir el proyecto
+- [ ] Explicar arquitectura de alto nivel
+- [ ] Instrucciones de instalación
+- [ ] Instrucciones de ejecución
+- [ ] Ejemplos de uso de API
+- [ ] Links a documentación adicional
+
+#### docs/ARCHITECTURE.md
+- [ ] Crear documento de arquitectura
+- [ ] Diagrama de componentes
+- [ ] Diagrama de flujo de datos
+- [ ] Explicar decisiones de diseño
+- [ ] Explicar patrones utilizados
+
+#### docs/DEPLOYMENT.md
+- [ ] Guía de deployment paso a paso
+- [ ] Requerimientos de infraestructura
+- [ ] Configuración de variables de entorno
+- [ ] Monitoreo y troubleshooting
+
+#### docs/API.md
+- [ ] Guía de uso de API
+- [ ] Ejemplos con curl
+- [ ] Ejemplos con Python
+- [ ] Rate limits y mejores prácticas
+
+#### docs/CONFIGURATION.md
+- [ ] Explicar cada archivo de configuración
+- [ ] Explicar cada parámetro
+- [ ] Ejemplos de configuraciones comunes
+- [ ] Tuning de performance
+
+#### docs/ML_MODEL.md
+- [ ] Explicar modelo de ML
+- [ ] Features utilizadas
+- [ ] Proceso de entrenamiento
+- [ ] Métricas de evaluación
+- [ ] Cómo mejorar el modelo
+
+---
+
+## FASE 17: Security & Best Practices
+
+### Security Hardening
+
+- [ ] Implementar rate limiting en endpoints públicos
+- [ ] Implementar autenticación para endpoints admin
+- [ ] Validar y sanitizar todos los inputs
+- [ ] Usar HTTPS en producción
+- [ ] Configurar CORS apropiadamente
+- [ ] Hashear credenciales si aplica
+- [ ] Rotar secrets regularmente
+- [ ] Implementar audit log para cambios críticos
+
+### Environment Variables
+
+- [ ] Listar todas las env vars necesarias en `.env.example`
+- [ ] Documentar cada variable
+- [ ] Usar valores seguros por defecto
+- [ ] No commitear archivos `.env` reales
+
+### Dependency Management
+
+- [ ] Mantener `requirements.txt` actualizado
+- [ ] Usar `pip-tools` para pinning de versiones
+- [ ] Ejecutar `pip-audit` para vulnerabilidades
+- [ ] Actualizar dependencias regularmente
+
+### Code Quality
+
+- [ ] Configurar pre-commit hooks:
+  - [ ] black (formatting)
+  - [ ] isort (imports)
+  - [ ] flake8 (linting)
+  - [ ] mypy (type checking)
+- [ ] Instalar: `pre-commit install`
+- [ ] Ejecutar: `pre-commit run --all-files`
+
+### Performance Optimization
+
+- [ ] Profile código con cProfile
+- [ ] Identificar queries N+1 en DB
+- [ ] Optimizar queries lentas
+- [ ] Añadir índices en DB donde sea necesario
+- [ ] Implementar connection pooling apropiado
+- [ ] Ajustar tamaños de pool según carga
+
+---
+
+## FASE 18: Advanced Features (Post-MVP)
+
+### A/B Testing for Pricing
+
+- [ ] Implementar framework de A/B testing
+- [ ] Dividir partidos en grupos control/tratamiento
+- [ ] Aplicar diferentes estrategias de pricing
+- [ ] Medir impacto en revenue y ocupación
+- [ ] Análisis estadístico de resultados
+
+### Dynamic Capacity Management
+
+- [ ] Implementar sistema para abrir/cerrar zonas dinámicamente
+- [ ] Optimizar distribución de aforo según demanda
+- [ ] Sugerir zonas a promocionar
+
+### Multi-Competition Support
+
+- [ ] Soportar múltiples equipos/estadios
+- [ ] Configuración específica por equipo
+- [ ] Dashboard multi-tenant
+
+### Mobile App Integration
+
+- [ ] Crear API endpoints específicos para mobile
+- [ ] Push notifications de cambios de precio
+- [ ] Alertas personalizadas
+
+### Advanced ML Models
+
+- [ ] LSTM para series temporales
+- [ ] Reinforcement Learning para optimización continua
+- [ ] Ensemble de modelos
+- [ ] Autotuning de hiperparámetros
+
+### Real-time Price Recommendations
+
+- [ ] WebSocket para actualizaciones en tiempo real
+- [ ] Sistema de recomendaciones para usuarios
+- [ ] Alertas de precio bajo
+
+### Reporting System
+
+- [ ] Generación automática de reportes
+- [ ] Export a PDF/Excel
+- [ ] Scheduler de reportes periódicos
+- [ ] Email delivery
+
+---
+
+## FASE 19: Production Readiness Checklist
+
+### Pre-Production
+
+- [ ] Realizar load testing completo
+- [ ] Revisar todos los logs de error
+- [ ] Verificar métricas de performance
+- [ ] Revisar configuración de producción
+- [ ] Preparar plan de rollback
+- [ ] Preparar runbook de troubleshooting
+- [ ] Configurar alertas críticas
+- [ ] Realizar security audit
+- [ ] Backup de base de datos configurado
+- [ ] Disaster recovery plan documentado
+
+### Production Launch
+
+- [ ] Deploy a ambiente de staging primero
+- [ ] Smoke tests en staging
+- [ ] Deploy a producción
+- [ ] Verificar health checks
+- [ ] Monitorear métricas primeras 24h
+- [ ] Estar disponible para hot-fixes
+
+### Post-Launch
+
+- [ ] Recoger feedback de usuarios
+- [ ] Analizar comportamiento en producción
+- [ ] Identificar quick wins para mejorar
+- [ ] Planear iteraciones futuras
+
+---
+
+## FASE 20: Maintenance & Iteration
+
+### Regular Tasks
+
+- [ ] Revisar logs diariamente
+- [ ] Revisar métricas semanalmente
+- [ ] Re-entrenar modelo ML mensualmente
+- [ ] Actualizar dependencias mensualmente
+- [ ] Backup de base de datos (automatizado)
+- [ ] Revisar y ajustar reglas de pricing según resultados
+
+### Continuous Improvement
+
+- [ ] Analizar accuracy del modelo ML
+- [ ] Comparar pricing predicho vs optimal en retrospectiva
+- [ ] Identificar patrones no capturados
+- [ ] Iterar sobre features del modelo
+- [ ] Optimizar consultas lentas
+- [ ] Refactorizar código según aprendizajes
+
+### Knowledge Base
+
+- [ ] Documentar incidentes y resoluciones
+- [ ] Crear FAQs
+- [ ] Mantener changelog actualizado
+- [ ] Compartir aprendizajes con el equipo
+
+---
+
+## Comandos Útiles de Referencia
+
+### Development
+
+```bash
+# Activar entorno virtual
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Ejecutar API localmente
+uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Ejecutar worker
+python -m src.workers price_updater
+
+# Ejecutar tests
+pytest                              # Todos los tests
+pytest tests/unit/                  # Solo unit tests
+pytest tests/integration/           # Solo integration tests
+pytest --cov=src --cov-report=html  # Con coverage
+
+# Formatear código
+black src/ tests/
+isort src/ tests/
+
+# Linting
+flake8 src/ tests/
+mypy src/
+
+# Type checking
+mypy src/
+```
+
+### Docker
+
+```bash
+# Build y start todos los servicios
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f api
+docker-compose logs -f worker
+
+# Rebuild después de cambios
+docker-compose up -d --build
+
+# Stop todos los servicios
+docker-compose down
+
+# Limpiar volúmenes
+docker-compose down -v
+```
+
+### Database
+
+```bash
+# Crear tablas
+python scripts/init_db.py --create
+
+# Seed data
+python scripts/seed_data.py
+
+# Migrations
+alembic revision --autogenerate -m "Description"
+alembic upgrade head
+alembic downgrade -1
+```
+
+### ML
+
+```bash
+# Entrenar modelo
+python src/ml/training/train_demand.py --config config/ml_config.yaml
+
+# Evaluar modelo
+python src/ml/training/evaluate.py --model-path models/demand_model_v1.pkl
+```
+
+---
+
+## Notas Finales
+
+- Cada checkbox puede expandirse en múltiples subtareas según necesidad
+- Priorizar MVP: fases 1-9 son críticas, el resto son mejoras
+- Mantener commits pequeños y frecuentes
+- Escribir tests conforme se desarrolla, no al final
+- Documentar decisiones importantes en comments/docs
+- Revisar cada fase antes de avanzar a la siguiente
+- Iterar sobre feedback real de usuarios
+
+---
+
+**Versión del Plan**: 1.0  
+**Última Actualización**: 2024-12-12
