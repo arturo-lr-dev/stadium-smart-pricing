@@ -172,202 +172,205 @@
 
 ---
 
-## FASE 2: Database Layer & Models
+## FASE 2: Database Layer & Models ✅ COMPLETED
+
+**Status:** ✅ COMPLETED (2024-12-12)
+**Documentation:** See [PHASE_2_COMPLETION.md](PHASE_2_COMPLETION.md)
 
 ### Database Setup
 
-- [ ] Iniciar PostgreSQL via Docker: `docker-compose up -d postgres`
-- [ ] Verificar conexión a PostgreSQL
-- [ ] Crear `src/core/database.py` con engine y session factory
-- [ ] Implementar Base declarativa de SQLAlchemy
-- [ ] Configurar connection pooling
-- [ ] Implementar función `get_db_session()` con context manager
+- [x] Iniciar PostgreSQL via Docker: `docker-compose up -d postgres`
+- [x] Verificar conexión a PostgreSQL
+- [x] Crear `src/core/database.py` con engine y session factory
+- [x] Implementar Base declarativa de SQLAlchemy
+- [x] Configurar connection pooling
+- [x] Implementar función `get_db_session()` con context manager
 
 ### Database Models (SQLAlchemy)
 
 #### src/domain/models/db_models.py
-- [ ] Crear archivo para modelos de base de datos
-- [ ] Implementar modelo `MatchDB`:
-  - [ ] id (String, PK)
-  - [ ] home_team (String)
-  - [ ] away_team (String)
-  - [ ] competition (String)
-  - [ ] match_date (DateTime)
-  - [ ] status (Enum: scheduled, on_sale, sold_out, completed)
-  - [ ] venue (String)
-  - [ ] capacity (Integer)
-  - [ ] is_derby (Boolean)
-  - [ ] is_holiday (Boolean)
-  - [ ] home_position (Integer, nullable)
-  - [ ] away_position (Integer, nullable)
-  - [ ] created_at (DateTime)
-  - [ ] updated_at (DateTime)
-  - [ ] Relaciones: sales, pricing_history
+- [x] Crear archivo para modelos de base de datos
+- [x] Implementar modelo `MatchDB`:
+  - [x] id (String, PK)
+  - [x] home_team (String)
+  - [x] away_team (String)
+  - [x] competition (String)
+  - [x] match_date (DateTime)
+  - [x] status (Enum: scheduled, on_sale, sold_out, completed)
+  - [x] venue (String)
+  - [x] capacity (Integer)
+  - [x] is_derby (Boolean)
+  - [x] is_holiday (Boolean)
+  - [x] home_position (Integer, nullable)
+  - [x] away_position (Integer, nullable)
+  - [x] created_at (DateTime)
+  - [x] updated_at (DateTime)
+  - [x] Relaciones: sales, pricing_history
 
-- [ ] Implementar modelo `ZoneDB`:
-  - [ ] id (String, PK)
-  - [ ] name (String)
-  - [ ] category (String)
-  - [ ] capacity (Integer)
-  - [ ] base_price (Float)
-  - [ ] min_price (Float)
-  - [ ] max_price (Float)
-  - [ ] price_multiplier (Float)
-  - [ ] is_active (Boolean)
+- [x] Implementar modelo `ZoneDB`:
+  - [x] id (String, PK)
+  - [x] name (String)
+  - [x] category (String)
+  - [x] capacity (Integer)
+  - [x] base_price (Float)
+  - [x] min_price (Float)
+  - [x] max_price (Float)
+  - [x] price_multiplier (Float)
+  - [x] is_active (Boolean)
 
-- [ ] Implementar modelo `SaleDB`:
-  - [ ] id (String, PK)
-  - [ ] match_id (FK)
-  - [ ] zone_id (FK)
-  - [ ] quantity (Integer)
-  - [ ] price_per_ticket (Float)
-  - [ ] total_amount (Float)
-  - [ ] customer_type (String: member, general, vip)
-  - [ ] purchase_datetime (DateTime)
-  - [ ] payment_status (String)
-  - [ ] Relación: match
+- [x] Implementar modelo `SaleDB`:
+  - [x] id (String, PK)
+  - [x] match_id (FK)
+  - [x] zone_id (FK)
+  - [x] quantity (Integer)
+  - [x] price_per_ticket (Float)
+  - [x] total_amount (Float)
+  - [x] customer_type (String: member, general, vip)
+  - [x] purchase_datetime (DateTime)
+  - [x] payment_status (String)
+  - [x] Relación: match
 
-- [ ] Implementar modelo `PricingHistoryDB`:
-  - [ ] id (String, PK)
-  - [ ] match_id (FK)
-  - [ ] zone_id (FK)
-  - [ ] price (Float)
-  - [ ] demand_score (Float)
-  - [ ] time_factor (Float)
-  - [ ] inventory_factor (Float)
-  - [ ] competition_factor (Float)
-  - [ ] weather_factor (Float)
-  - [ ] timestamp (DateTime)
-  - [ ] Relación: match
+- [x] Implementar modelo `PricingHistoryDB`:
+  - [x] id (String, PK)
+  - [x] match_id (FK)
+  - [x] zone_id (FK)
+  - [x] price (Float)
+  - [x] demand_score (Float)
+  - [x] time_factor (Float)
+  - [x] inventory_factor (Float)
+  - [x] competition_factor (Float)
+  - [x] weather_factor (Float)
+  - [x] timestamp (DateTime)
+  - [x] Relación: match
 
-- [ ] Implementar modelo `DemandMetricsDB`:
-  - [ ] id (String, PK)
-  - [ ] match_id (FK)
-  - [ ] zone_id (FK)
-  - [ ] views (Integer)
-  - [ ] cart_additions (Integer)
-  - [ ] cart_abandonments (Integer)
-  - [ ] timestamp (DateTime)
+- [x] Implementar modelo `DemandMetricsDB`:
+  - [x] id (String, PK)
+  - [x] match_id (FK)
+  - [x] zone_id (FK)
+  - [x] views (Integer)
+  - [x] cart_additions (Integer)
+  - [x] cart_abandonments (Integer)
+  - [x] timestamp (DateTime)
 
-- [ ] Implementar modelo `ExternalDataDB` para cache de APIs externas:
-  - [ ] id (String, PK)
-  - [ ] source (String: weather, football_stats, transport)
-  - [ ] data_key (String)
-  - [ ] data_value (JSONB)
-  - [ ] fetched_at (DateTime)
-  - [ ] expires_at (DateTime)
+- [x] Implementar modelo `ExternalDataDB` para cache de APIs externas:
+  - [x] id (String, PK)
+  - [x] source (String: weather, football_stats, transport)
+  - [x] data_key (String)
+  - [x] data_value (JSONB)
+  - [x] fetched_at (DateTime)
+  - [x] expires_at (DateTime)
 
 ### Domain Models (Pydantic)
 
 #### src/domain/models/__init__.py
-- [ ] Crear archivo `__init__.py`
-- [ ] Exportar todos los modelos públicos
+- [x] Crear archivo `__init__.py`
+- [x] Exportar todos los modelos públicos
 
 #### src/domain/models/match.py
-- [ ] Crear enumeración `CompetitionType`
-- [ ] Crear enumeración `MatchStatus`
-- [ ] Crear modelo `Match` con Pydantic:
-  - [ ] id (str)
-  - [ ] home_team (str)
-  - [ ] away_team (str)
-  - [ ] competition (CompetitionType)
-  - [ ] date (datetime)
-  - [ ] venue (str)
-  - [ ] capacity (int)
-  - [ ] is_derby (bool)
-  - [ ] is_holiday (bool)
-  - [ ] home_position (Optional[int])
-  - [ ] away_position (Optional[int])
-  - [ ] status (MatchStatus)
-- [ ] Añadir validators para fechas futuras
-- [ ] Añadir método `days_until_match()`
-- [ ] Añadir ejemplo en Config
+- [x] Crear enumeración `CompetitionType`
+- [x] Crear enumeración `MatchStatus`
+- [x] Crear modelo `Match` con Pydantic:
+  - [x] id (str)
+  - [x] home_team (str)
+  - [x] away_team (str)
+  - [x] competition (CompetitionType)
+  - [x] date (datetime)
+  - [x] venue (str)
+  - [x] capacity (int)
+  - [x] is_derby (bool)
+  - [x] is_holiday (bool)
+  - [x] home_position (Optional[int])
+  - [x] away_position (Optional[int])
+  - [x] status (MatchStatus)
+- [x] Añadir validators para fechas futuras
+- [x] Añadir método `days_until_match()`
+- [x] Añadir ejemplo en Config
 
 #### src/domain/models/zone.py
-- [ ] Crear enumeración `ZoneCategory`
-- [ ] Crear modelo `Zone` con Pydantic:
-  - [ ] id (str)
-  - [ ] name (str)
-  - [ ] category (ZoneCategory)
-  - [ ] capacity (int)
-  - [ ] base_price (float)
-  - [ ] min_price (float)
-  - [ ] max_price (float)
-  - [ ] price_multiplier (float)
-- [ ] Añadir validator para min_price <= base_price <= max_price
-- [ ] Implementar método `validate_price(price: float) -> float`
-- [ ] Añadir ejemplo en Config
+- [x] Crear enumeración `ZoneCategory`
+- [x] Crear modelo `Zone` con Pydantic:
+  - [x] id (str)
+  - [x] name (str)
+  - [x] category (ZoneCategory)
+  - [x] capacity (int)
+  - [x] base_price (float)
+  - [x] min_price (float)
+  - [x] max_price (float)
+  - [x] price_multiplier (float)
+- [x] Añadir validator para min_price <= base_price <= max_price
+- [x] Implementar método `validate_price(price: float) -> float`
+- [x] Añadir ejemplo en Config
 
 #### src/domain/models/pricing.py
-- [ ] Crear modelo `PricingFactors`:
-  - [ ] demand_score (float, 0-1)
-  - [ ] time_factor (float, 0.5-2.0)
-  - [ ] inventory_factor (float, 0.7-1.5)
-  - [ ] competition_factor (float, 1.0-3.0)
-  - [ ] weather_factor (float, 0.9-1.1)
-- [ ] Crear modelo `ZonePricing`:
-  - [ ] zone_id (str)
-  - [ ] current_price (float)
-  - [ ] base_price (float)
-  - [ ] factors (PricingFactors)
-  - [ ] last_updated (datetime)
-  - [ ] sold_tickets (int)
-  - [ ] available_tickets (int)
-  - [ ] occupancy_percent (float)
-- [ ] Añadir método `calculate_occupancy()`
-- [ ] Crear modelo `MatchPricing`:
-  - [ ] match_id (str)
-  - [ ] zones (List[ZonePricing])
-  - [ ] total_revenue (float)
-  - [ ] total_sold (int)
-  - [ ] total_capacity (int)
-  - [ ] avg_price (float)
-  - [ ] last_calculation (datetime)
-- [ ] Añadir método `get_zone_pricing(zone_id: str)`
+- [x] Crear modelo `PricingFactors`:
+  - [x] demand_score (float, 0-1)
+  - [x] time_factor (float, 0.5-2.0)
+  - [x] inventory_factor (float, 0.7-1.5)
+  - [x] competition_factor (float, 1.0-3.0)
+  - [x] weather_factor (float, 0.9-1.1)
+- [x] Crear modelo `ZonePricing`:
+  - [x] zone_id (str)
+  - [x] current_price (float)
+  - [x] base_price (float)
+  - [x] factors (PricingFactors)
+  - [x] last_updated (datetime)
+  - [x] sold_tickets (int)
+  - [x] available_tickets (int)
+  - [x] occupancy_percent (float)
+- [x] Añadir método `calculate_occupancy()`
+- [x] Crear modelo `MatchPricing`:
+  - [x] match_id (str)
+  - [x] zones (List[ZonePricing])
+  - [x] total_revenue (float)
+  - [x] total_sold (int)
+  - [x] total_capacity (int)
+  - [x] avg_price (float)
+  - [x] last_calculation (datetime)
+- [x] Añadir método `get_zone_pricing(zone_id: str)`
 
 #### src/domain/models/sale.py
-- [ ] Crear enumeración `CustomerType`
-- [ ] Crear enumeración `PaymentStatus`
-- [ ] Crear modelo `Sale`:
-  - [ ] id (str)
-  - [ ] match_id (str)
-  - [ ] zone_id (str)
-  - [ ] quantity (int)
-  - [ ] price_per_ticket (float)
-  - [ ] total_amount (float)
-  - [ ] customer_type (CustomerType)
-  - [ ] purchase_datetime (datetime)
-  - [ ] payment_status (PaymentStatus)
-- [ ] Añadir validator para total_amount = quantity * price_per_ticket
+- [x] Crear enumeración `CustomerType`
+- [x] Crear enumeración `PaymentStatus`
+- [x] Crear modelo `Sale`:
+  - [x] id (str)
+  - [x] match_id (str)
+  - [x] zone_id (str)
+  - [x] quantity (int)
+  - [x] price_per_ticket (float)
+  - [x] total_amount (float)
+  - [x] customer_type (CustomerType)
+  - [x] purchase_datetime (datetime)
+  - [x] payment_status (PaymentStatus)
+- [x] Añadir validator para total_amount = quantity * price_per_ticket
 
 ### Database Initialization Script
 
 #### scripts/init_db.py
-- [ ] Crear script de inicialización
-- [ ] Implementar función `create_all_tables()`
-- [ ] Implementar función `drop_all_tables()` (con confirmación)
-- [ ] Añadir CLI con argparse para opciones
-- [ ] Ejecutar: `python scripts/init_db.py --create`
+- [x] Crear script de inicialización
+- [x] Implementar función `create_all_tables()`
+- [x] Implementar función `drop_all_tables()` (con confirmación)
+- [x] Añadir CLI con argparse para opciones
+- [x] Ejecutar: `python scripts/init_db.py --create`
 
 ### Database Seeding Script
 
 #### scripts/seed_data.py
-- [ ] Crear script de seed con datos de prueba
-- [ ] Implementar función `seed_zones()` con zonas de Son Moix
-- [ ] Implementar función `seed_matches()` con partidos de ejemplo
-- [ ] Implementar función `seed_sales()` con ventas de ejemplo
-- [ ] Implementar función `seed_pricing_history()` con histórico
-- [ ] Añadir flag `--clear` para limpiar antes de seed
-- [ ] Ejecutar: `python scripts/seed_data.py`
+- [x] Crear script de seed con datos de prueba
+- [x] Implementar función `seed_zones()` con zonas de Son Moix
+- [x] Implementar función `seed_matches()` con partidos de ejemplo
+- [x] Implementar función `seed_sales()` con ventas de ejemplo
+- [x] Implementar función `seed_pricing_history()` con histórico
+- [x] Añadir flag `--clear` para limpiar antes de seed
+- [x] Ejecutar: `python scripts/seed_data.py`
 
 ### Alembic Migrations
 
-- [ ] Inicializar Alembic: `alembic init alembic`
-- [ ] Configurar `alembic.ini` con connection string
-- [ ] Configurar `alembic/env.py` para auto-generar migraciones
-- [ ] Crear migración inicial: `alembic revision --autogenerate -m "Initial schema"`
-- [ ] Revisar migración generada
-- [ ] Aplicar migración: `alembic upgrade head`
+- [x] Inicializar Alembic: `alembic init alembic`
+- [x] Configurar `alembic.ini` con connection string
+- [x] Configurar `alembic/env.py` para auto-generar migraciones
+- [x] Crear migración inicial: `alembic revision --autogenerate -m "Initial schema"`
+- [x] Revisar migración generada
+- [x] Aplicar migración: `alembic upgrade head`
 
 ---
 
