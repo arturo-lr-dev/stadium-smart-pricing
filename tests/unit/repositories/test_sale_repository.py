@@ -152,6 +152,7 @@ class TestSaleRepository:
             data = sample_sale_data.copy()
             data["id"] = f"sale_{i}"
             data["quantity"] = 10
+            data["total_amount"] = data["quantity"] * data["price_per_ticket"]
             sale = Sale(**data)
             repo.create(sale)
 

@@ -85,6 +85,7 @@ def sample_sale_data():
         "total_amount": 70.0,
         "customer_type": CustomerType.GENERAL,
         "payment_status": PaymentStatus.COMPLETED,
+        "purchase_datetime": datetime.now(),
     }
 
 
