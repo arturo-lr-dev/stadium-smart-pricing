@@ -129,3 +129,4 @@ Implementar caching en Redis para respuestas frecuentes
 Añadir métricas (Prometheus) para monitorización
 
 Si creas archivos de documentacion despues de una implementacion crealos en la carpeta /docs
+Plan de implementacion por fases en @/docs/IMPLEMENTATION_PLAN.md
