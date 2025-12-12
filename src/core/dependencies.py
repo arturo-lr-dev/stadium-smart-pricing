@@ -256,64 +256,108 @@ def get_inventory_manager():
 
 
 # ============================================================================
-# REPOSITORY DEPENDENCIES (Placeholders para fases futuras)
+# REPOSITORY DEPENDENCIES
 # ============================================================================
 
 
-def get_match_repository():
+def get_match_repository(db: Session = None):
     """
     Dependency para obtener el MatchRepository.
 
-    Note:
-        Se implementará en Fase 3
+    Args:
+        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+
+    Returns:
+        Instancia de MatchRepository
+
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/matches")
+        >>> def get_matches(repo = Depends(get_match_repository)):
+        >>>     return repo.get_all()
     """
-    # TODO: Implementar en Fase 3
-    # from src.domain.repositories.match_repository import MatchRepository
-    # db = next(get_db())
-    # return MatchRepository(db)
-    return None
+    from src.domain.repositories.match_repository import MatchRepository
+
+    if db is None:
+        # Para uso directo (no como dependency de FastAPI)
+        db = next(get_db())
+
+    return MatchRepository(db)
 
 
-def get_zone_repository():
+def get_zone_repository(db: Session = None):
     """
     Dependency para obtener el ZoneRepository.
 
-    Note:
-        Se implementará en Fase 3
+    Args:
+        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+
+    Returns:
+        Instancia de ZoneRepository
+
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/zones")
+        >>> def get_zones(repo = Depends(get_zone_repository)):
+        >>>     return repo.get_all()
     """
-    # TODO: Implementar en Fase 3
-    # from src.domain.repositories.zone_repository import ZoneRepository
-    # db = next(get_db())
-    # return ZoneRepository(db)
-    return None
+    from src.domain.repositories.zone_repository import ZoneRepository
+
+    if db is None:
+        # Para uso directo (no como dependency de FastAPI)
+        db = next(get_db())
+
+    return ZoneRepository(db)
 
 
-def get_sale_repository():
+def get_sale_repository(db: Session = None):
     """
     Dependency para obtener el SaleRepository.
 
-    Note:
-        Se implementará en Fase 3
+    Args:
+        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+
+    Returns:
+        Instancia de SaleRepository
+
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/sales")
+        >>> def get_sales(repo = Depends(get_sale_repository)):
+        >>>     return repo.get_all()
     """
-    # TODO: Implementar en Fase 3
-    # from src.domain.repositories.sale_repository import SaleRepository
-    # db = next(get_db())
-    # return SaleRepository(db)
-    return None
+    from src.domain.repositories.sale_repository import SaleRepository
+
+    if db is None:
+        # Para uso directo (no como dependency de FastAPI)
+        db = next(get_db())
+
+    return SaleRepository(db)
 
 
-def get_pricing_repository():
+def get_pricing_repository(db: Session = None):
     """
     Dependency para obtener el PricingHistoryRepository.
 
-    Note:
-        Se implementará en Fase 3
+    Args:
+        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+
+    Returns:
+        Instancia de PricingHistoryRepository
+
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/pricing-history")
+        >>> def get_history(repo = Depends(get_pricing_repository)):
+        >>>     return repo.get_all()
     """
-    # TODO: Implementar en Fase 3
-    # from src.domain.repositories.pricing_repository import PricingHistoryRepository
-    # db = next(get_db())
-    # return PricingHistoryRepository(db)
-    return None
+    from src.domain.repositories.pricing_repository import PricingHistoryRepository
+
+    if db is None:
+        # Para uso directo (no como dependency de FastAPI)
+        db = next(get_db())
+
+    return PricingHistoryRepository(db)
 
 
 # ============================================================================

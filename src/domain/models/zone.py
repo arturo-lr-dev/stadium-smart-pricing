@@ -118,23 +118,6 @@ class Zone(BaseModel):
         """
         return self.price_range_width() / self.base_price
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "zone_tribuna_norte",
-                "name": "Tribuna Norte",
-                "category": "standard",
-                "capacity": 5000,
-                "base_price": 30.0,
-                "min_price": 20.0,
-                "max_price": 50.0,
-                "price_multiplier": 1.0,
-                "is_active": True,
-                "description": "North stand with great view",
-                "amenities": ["covered", "food_stand", "restrooms"],
-            }
-        }
-
 
 class ZoneCreate(BaseModel):
     """Schema for creating a new zone."""

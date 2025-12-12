@@ -97,22 +97,6 @@ class Sale(BaseModel):
         """
         return self.payment_status == PaymentStatus.REFUNDED
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "sale_12345",
-                "match_id": "match_001",
-                "zone_id": "zone_tribuna_norte",
-                "quantity": 2,
-                "price_per_ticket": 35.50,
-                "total_amount": 71.00,
-                "customer_type": "member",
-                "customer_id": "cust_67890",
-                "purchase_datetime": "2024-03-10T14:30:00",
-                "payment_status": "completed",
-                "payment_method": "credit_card",
-            }
-        }
 
 
 class SaleCreate(BaseModel):
@@ -174,28 +158,6 @@ class SalesSummary(BaseModel):
         default_factory=dict, description="Sales breakdown by payment status"
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "match_id": "match_001",
-                "zone_id": "zone_tribuna_norte",
-                "total_sales": 1250,
-                "total_tickets": 3500,
-                "total_revenue": 124250.00,
-                "avg_price": 35.50,
-                "sales_by_customer_type": {
-                    "member": 900,
-                    "general": 300,
-                    "vip": 50,
-                },
-                "sales_by_payment_status": {
-                    "completed": 1200,
-                    "pending": 30,
-                    "failed": 20,
-                },
-            }
-        }
-
 
 class SalesVelocity(BaseModel):
     """Sales velocity metrics."""
@@ -210,15 +172,3 @@ class SalesVelocity(BaseModel):
         None, description="Projected sellout date"
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "match_id": "match_001",
-                "zone_id": "zone_tribuna_norte",
-                "time_period_hours": 24,
-                "tickets_sold": 250,
-                "velocity_per_hour": 10.4,
-                "velocity_per_day": 250.0,
-                "projected_sellout_date": "2024-03-14T18:00:00",
-            }
-        }

@@ -65,19 +65,6 @@ class PricingFactors(BaseModel):
 
         return base
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "demand_score": 0.75,
-                "time_factor": 1.2,
-                "inventory_factor": 1.1,
-                "competition_factor": 1.5,
-                "rival_factor": 1.3,
-                "weather_factor": 1.0,
-                "special_conditions": {"derby": 1.2, "weekend": 1.05},
-            }
-        }
-
 
 class ZonePricing(BaseModel):
     """
@@ -138,30 +125,6 @@ class ZonePricing(BaseModel):
             True if occupancy is below 30%
         """
         return self.occupancy_percent <= 30.0
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "zone_id": "zone_tribuna_norte",
-                "zone_name": "Tribuna Norte",
-                "current_price": 35.50,
-                "base_price": 30.0,
-                "factors": {
-                    "demand_score": 0.75,
-                    "time_factor": 1.2,
-                    "inventory_factor": 1.1,
-                    "competition_factor": 1.5,
-                    "rival_factor": 1.0,
-                    "weather_factor": 1.0,
-                    "special_conditions": {},
-                },
-                "last_updated": "2024-03-10T12:00:00",
-                "sold_tickets": 3500,
-                "available_tickets": 1500,
-                "capacity": 5000,
-                "occupancy_percent": 70.0,
-            }
-        }
 
 
 class MatchPricing(BaseModel):
@@ -251,18 +214,6 @@ class MatchPricing(BaseModel):
         """
         return [z for z in self.zones if z.occupancy_percent <= threshold]
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "match_id": "match_001",
-                "zones": [],
-                "total_revenue": 500000.0,
-                "total_sold": 18000,
-                "total_capacity": 23142,
-                "avg_price": 35.5,
-                "last_calculation": "2024-03-10T12:00:00",
-            }
-        }
 
 
 class PriceChangeRequest(BaseModel):

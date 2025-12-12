@@ -40,7 +40,26 @@ class Match(BaseModel):
     Represents a football match with all relevant information for pricing.
     """
 
-    model_config = ConfigDict(from_attributes=True, use_enum_values=False)
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=False,
+        json_schema_extra={
+            "example": {
+                "id": "match_001",
+                "home_team": "RCD Mallorca",
+                "away_team": "FC Barcelona",
+                "competition": "la_liga",
+                "date": "2024-03-15T20:00:00",
+                "venue": "Son Moix",
+                "capacity": 23142,
+                "is_derby": False,
+                "is_holiday": False,
+                "home_position": 12,
+                "away_position": 1,
+                "status": "scheduled",
+            }
+        }
+    )
 
     id: str = Field(..., description="Unique match identifier")
     home_team: str = Field(..., description="Home team name", min_length=1, max_length=100)
@@ -136,24 +155,6 @@ class Match(BaseModel):
         ]
 
         return self.competition.lower() in [c.lower() for c in high_profile_competitions]
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "match_001",
-                "home_team": "RCD Mallorca",
-                "away_team": "FC Barcelona",
-                "competition": "la_liga",
-                "date": "2024-03-15T20:00:00",
-                "venue": "Son Moix",
-                "capacity": 23142,
-                "is_derby": False,
-                "is_holiday": False,
-                "home_position": 12,
-                "away_position": 1,
-                "status": "scheduled",
-            }
-        }
 
 
 class MatchCreate(BaseModel):
