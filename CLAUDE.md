@@ -127,3 +127,5 @@ Documentar con docstrings Google style
 Configurar via YAML todos los parámetros de negocio
 Implementar caching en Redis para respuestas frecuentes
 Añadir métricas (Prometheus) para monitorización
+
+Si creas archivos de documentacion despues de una implementacion crealos en la carpeta /docs
