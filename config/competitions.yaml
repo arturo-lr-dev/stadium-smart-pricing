@@ -1,0 +1,366 @@
+# Configuración de Competiciones
+# Definición de todas las competiciones y sus características
+
+# ============================================================================
+# COMPETICIONES NACIONALES
+# ============================================================================
+national_competitions:
+  - id: "LALIGA"
+    name: "LaLiga EA Sports"
+    short_name: "LaLiga"
+    type: "league"
+    country: "España"
+    level: 1
+    base_multiplier: 1.0
+    season: "2024-2025"
+    total_matches: 38
+    importance: "high"
+    features:
+      rivalries_matter: true
+      position_matters: true
+      relegation_battle: true
+    description: "Primera División española"
+
+  - id: "COPA_REY"
+    name: "Copa de S.M. el Rey"
+    short_name: "Copa del Rey"
+    type: "knockout"
+    country: "España"
+    level: 1
+    base_multiplier: 1.2
+    season: "2024-2025"
+    importance: "high"
+    stages:
+      - name: "Dieciseisavos"
+        multiplier: 0.9
+      - name: "Octavos de Final"
+        multiplier: 1.2
+      - name: "Cuartos de Final"
+        multiplier: 1.5
+      - name: "Semifinales"
+        multiplier: 2.0
+      - name: "Final"
+        multiplier: 3.0
+    features:
+      stage_based_pricing: true
+      single_match_elimination: true
+    description: "Copa del Rey - Torneo de eliminación directa"
+
+  - id: "SUPERCOPA"
+    name: "Supercopa de España"
+    short_name: "Supercopa"
+    type: "super_cup"
+    country: "España"
+    level: 1
+    base_multiplier: 2.0
+    season: "2024-2025"
+    importance: "high"
+    features:
+      limited_participation: true
+      prestigious: true
+    description: "Supercopa de España"
+
+# ============================================================================
+# COMPETICIONES EUROPEAS
+# ============================================================================
+european_competitions:
+  - id: "UCL"
+    name: "UEFA Champions League"
+    short_name: "Champions League"
+    type: "european_cup"
+    country: "Europa"
+    level: 1
+    base_multiplier: 3.0
+    season: "2024-2025"
+    importance: "very_high"
+    stages:
+      - name: "Fase de Liga"
+        multiplier: 2.5
+      - name: "Eliminatorias Previas"
+        multiplier: 2.0
+      - name: "Octavos de Final"
+        multiplier: 3.0
+      - name: "Cuartos de Final"
+        multiplier: 3.5
+      - name: "Semifinales"
+        multiplier: 4.0
+      - name: "Final"
+        multiplier: 5.0
+    features:
+      international: true
+      highest_prestige: true
+      stage_based_pricing: true
+    description: "Máxima competición europea de clubes"
+
+  - id: "UEL"
+    name: "UEFA Europa League"
+    short_name: "Europa League"
+    type: "european_cup"
+    country: "Europa"
+    level: 2
+    base_multiplier: 1.8
+    season: "2024-2025"
+    importance: "high"
+    stages:
+      - name: "Fase de Liga"
+        multiplier: 1.6
+      - name: "Eliminatorias Previas"
+        multiplier: 1.4
+      - name: "Octavos de Final"
+        multiplier: 1.8
+      - name: "Cuartos de Final"
+        multiplier: 2.2
+      - name: "Semifinales"
+        multiplier: 2.5
+      - name: "Final"
+        multiplier: 3.5
+    features:
+      international: true
+      stage_based_pricing: true
+    description: "Segunda competición europea de clubes"
+
+  - id: "UECL"
+    name: "UEFA Europa Conference League"
+    short_name: "Conference League"
+    type: "european_cup"
+    country: "Europa"
+    level: 3
+    base_multiplier: 1.5
+    season: "2024-2025"
+    importance: "medium"
+    stages:
+      - name: "Fase de Liga"
+        multiplier: 1.3
+      - name: "Eliminatorias Previas"
+        multiplier: 1.2
+      - name: "Octavos de Final"
+        multiplier: 1.5
+      - name: "Cuartos de Final"
+        multiplier: 1.8
+      - name: "Semifinales"
+        multiplier: 2.0
+      - name: "Final"
+        multiplier: 2.5
+    features:
+      international: true
+      stage_based_pricing: true
+    description: "Tercera competición europea de clubes"
+
+# ============================================================================
+# PARTIDOS AMISTOSOS
+# ============================================================================
+friendly_matches:
+  - id: "FRIENDLY_CLUB"
+    name: "Amistoso de Clubes"
+    short_name: "Amistoso"
+    type: "friendly"
+    country: "Internacional"
+    level: 5
+    base_multiplier: 0.6
+    season: "2024-2025"
+    importance: "low"
+    features:
+      non_competitive: true
+      flexible_pricing: true
+    description: "Partido amistoso entre clubes"
+
+  - id: "FRIENDLY_INT"
+    name: "Amistoso Internacional"
+    short_name: "Amistoso Int."
+    type: "friendly"
+    country: "Internacional"
+    level: 4
+    base_multiplier: 0.8
+    season: "2024-2025"
+    importance: "low"
+    features:
+      non_competitive: true
+      international: true
+      flexible_pricing: true
+    description: "Partido amistoso internacional de prestigio"
+
+  - id: "FRIENDLY_PRESEASON"
+    name: "Amistoso de Pretemporada"
+    short_name: "Pretemporada"
+    type: "friendly"
+    country: "Internacional"
+    level: 5
+    base_multiplier: 0.5
+    season: "2024-2025"
+    importance: "very_low"
+    features:
+      non_competitive: true
+      preseason: true
+      flexible_pricing: true
+    description: "Partido de preparación pretemporada"
+
+# ============================================================================
+# PARTIDOS DE SELECCIONES
+# ============================================================================
+national_team_matches:
+  - id: "WORLDCUP_QUAL"
+    name: "Clasificación Mundial"
+    short_name: "Clasif. Mundial"
+    type: "international"
+    country: "FIFA"
+    level: 1
+    base_multiplier: 2.5
+    season: "2024-2025"
+    importance: "very_high"
+    features:
+      international: true
+      qualification: true
+    description: "Clasificación para Copa del Mundo"
+
+  - id: "EURO_QUAL"
+    name: "Clasificación Eurocopa"
+    short_name: "Clasif. Euro"
+    type: "international"
+    country: "UEFA"
+    level: 1
+    base_multiplier: 2.2
+    season: "2024-2025"
+    importance: "high"
+    features:
+      international: true
+      qualification: true
+    description: "Clasificación para Eurocopa"
+
+  - id: "NATIONS_LEAGUE"
+    name: "UEFA Nations League"
+    short_name: "Nations League"
+    type: "international"
+    country: "UEFA"
+    level: 2
+    base_multiplier: 1.6
+    season: "2024-2025"
+    importance: "medium"
+    features:
+      international: true
+      competitive: true
+    description: "Liga de Naciones de la UEFA"
+
+  - id: "FRIENDLY_NT"
+    name: "Amistoso de Selecciones"
+    short_name: "Amistoso Int."
+    type: "international"
+    country: "FIFA"
+    level: 3
+    base_multiplier: 1.2
+    season: "2024-2025"
+    importance: "low"
+    features:
+      international: true
+      non_competitive: true
+    description: "Partido amistoso entre selecciones"
+
+# ============================================================================
+# CONFIGURACIÓN DE CARACTERÍSTICAS
+# ============================================================================
+features_impact:
+  # Impacto de características en el pricing
+  rivalries_matter:
+    description: "Los derbies y rivalidades afectan el precio"
+    impact: "high"
+    multiplier_range: [1.5, 2.5]
+
+  position_matters:
+    description: "La posición en tabla afecta el precio"
+    impact: "medium"
+    multiplier_range: [0.9, 1.3]
+
+  relegation_battle:
+    description: "Partidos de descenso tienen ajuste especial"
+    impact: "high"
+    multiplier_range: [1.3, 1.8]
+
+  stage_based_pricing:
+    description: "El precio varía según la fase de la competición"
+    impact: "very_high"
+    multiplier_range: [1.0, 5.0]
+
+  international:
+    description: "Partidos internacionales tienen interés especial"
+    impact: "high"
+    multiplier_range: [1.2, 2.0]
+
+  highest_prestige:
+    description: "Máximo prestigio de la competición"
+    impact: "very_high"
+    multiplier_range: [2.5, 5.0]
+
+# ============================================================================
+# REGLAS ESPECIALES POR COMPETICIÓN
+# ============================================================================
+special_rules:
+  LALIGA:
+    # Jornadas especiales
+    special_matchdays:
+      - matchday: 1
+        name: "Jornada inaugural"
+        multiplier: 1.3
+      - matchday: 38
+        name: "Última jornada"
+        multiplier: 1.2
+
+    # Partidos según posición
+    position_based:
+      top3_rival: 2.5      # vs top 3
+      top10_rival: 1.5     # vs top 10
+      mid_table: 1.0       # vs mitad de tabla
+      bottom3_rival: 0.85  # vs 3 últimos
+
+  COPA_REY:
+    # Bono por eliminación directa
+    elimination_bonus: 1.2
+
+    # Ajuste por rival de categoría inferior
+    lower_division_penalty: 0.75
+
+  UCL:
+    # Grupos de muerte (grupos difíciles)
+    tough_group_bonus: 1.2
+
+    # Partidos decisivos
+    decisive_match_bonus: 1.5
+
+# ============================================================================
+# CALENDARIO Y TIMING
+# ============================================================================
+timing_preferences:
+  preferred_slots:
+    LALIGA:
+      - day: "saturday"
+        time: "21:00"
+        multiplier: 1.15
+      - day: "sunday"
+        time: "18:30"
+        multiplier: 1.10
+
+    COPA_REY:
+      - day: "wednesday"
+        time: "21:00"
+        multiplier: 1.0
+
+    UCL:
+      - day: "tuesday"
+        time: "21:00"
+        multiplier: 1.2
+      - day: "wednesday"
+        time: "21:00"
+        multiplier: 1.2
+
+    UEL:
+      - day: "thursday"
+        time: "21:00"
+        multiplier: 1.1
+
+# ============================================================================
+# METADATOS
+# ============================================================================
+metadata:
+  version: "1.0"
+  last_updated: "2024-12-12"
+  season: "2024-2025"
+  total_competitions: 12
+  notes: "Configuración de competiciones para la temporada 2024-2025"

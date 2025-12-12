@@ -1,0 +1,219 @@
+# Configuración Base del Sistema de Smart Pricing
+# Este archivo contiene la configuración principal de la aplicación
+
+app:
+  name: "Smart Pricing System"
+  version: "0.1.0"
+  description: "Sistema inteligente de pricing dinámico para estadios de fútbol"
+  environment: "development"  # development, staging, production
+
+# Configuración de base de datos
+database:
+  pool_size: 20
+  max_overflow: 10
+  pool_timeout: 30
+  pool_recycle: 3600
+  echo_queries: false  # true en development para ver queries SQL
+
+# Configuración de Redis/Cache
+redis:
+  default_ttl: 300  # 5 minutos
+  pricing_ttl: 300  # 5 minutos para precios
+  inventory_ttl: 120  # 2 minutos para inventario
+  external_data_ttl: 3600  # 1 hora para datos externos
+  max_connections: 50
+
+# Configuración del motor de pricing
+pricing:
+  # Intervalo de actualización automática (segundos)
+  update_interval: 300  # 5 minutos
+
+  # Umbral mínimo de cambio de precio (euros)
+  min_change_threshold: 0.50
+
+  # Máximo de cambios de precio por día por zona
+  max_daily_changes: 5
+
+  # Horas mínimas entre cambios de precio
+  min_hours_between_changes: 2
+
+  # Blackout period antes del partido (horas)
+  # No se cambian precios en este período
+  blackout_period_hours: 24
+
+  # Porcentaje máximo de cambio de precio en un solo ajuste
+  max_price_change_percent: 20
+
+  # Aplicar ajustes graduales
+  gradual_adjustment: true
+  gradual_adjustment_factor: 0.7  # Factor de suavizado
+
+# Configuración de logging
+logging:
+  # Nivel de log por módulo
+  levels:
+    root: "INFO"
+    src.api: "INFO"
+    src.domain.services: "INFO"
+    src.ml: "INFO"
+    uvicorn: "INFO"
+    sqlalchemy.engine: "WARNING"
+
+  # Formato de logs
+  format: "json"  # json o text
+
+  # Rotación de archivos de log
+  rotation:
+    enabled: true
+    max_bytes: 10485760  # 10 MB
+    backup_count: 5
+
+# Configuración de métricas y monitoreo
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9090
+    metrics_path: "/metrics"
+
+  # Métricas a recolectar
+  collect_metrics:
+    - "api_requests"
+    - "pricing_calculations"
+    - "database_queries"
+    - "cache_hits"
+    - "external_api_calls"
+
+# Configuración de workers
+workers:
+  price_updater:
+    enabled: true
+    interval: 300  # segundos
+    batch_size: 10  # partidos a procesar por ciclo
+
+  data_collector:
+    enabled: true
+    interval: 3600  # 1 hora
+
+  model_retrainer:
+    enabled: true
+    interval: 604800  # 7 días
+    min_training_samples: 1000
+
+# Configuración de features de ML
+ml:
+  # Features habilitadas para predicción
+  enabled_features:
+    - "competition_type"
+    - "rival_strength"
+    - "day_of_week"
+    - "time_to_match"
+    - "weather"
+    - "historical_sales"
+    - "team_position"
+
+  # Configuración de modelo
+  model:
+    type: "xgboost"  # xgboost, random_forest, neural_network
+    hyperparameters:
+      n_estimators: 100
+      max_depth: 6
+      learning_rate: 0.1
+
+  # Umbral de confianza mínimo
+  min_confidence: 0.6
+
+# Configuración de APIs externas
+external_apis:
+  # Reintentos en caso de fallo
+  retry:
+    max_attempts: 3
+    backoff_factor: 2  # Exponential backoff
+    max_delay: 60  # segundos
+
+  # Timeouts (segundos)
+  timeouts:
+    connect: 5
+    read: 30
+
+  # Rate limiting
+  rate_limits:
+    football_data: 10  # requests por minuto
+    weather_api: 60  # requests por minuto
+
+# Configuración de seguridad
+security:
+  # CORS
+  cors:
+    allow_credentials: true
+    max_age: 600  # segundos
+
+  # Rate limiting de API
+  api_rate_limit:
+    enabled: true
+    requests_per_minute: 100
+    burst_size: 20
+
+  # Validación de entrada
+  input_validation:
+    strict: true
+    max_request_size: 1048576  # 1 MB
+
+# Configuración de alertas
+alerts:
+  enabled: true
+
+  # Alertas de inventario
+  inventory:
+    high_occupancy_threshold: 0.90  # 90%
+    low_occupancy_threshold: 0.20  # 20%
+    days_before_match: 7
+
+  # Alertas de sistema
+  system:
+    high_error_rate: 0.05  # 5%
+    high_latency_p95: 2000  # ms
+    cache_miss_rate: 0.30  # 30%
+
+# Configuración de notificaciones
+notifications:
+  email:
+    enabled: false
+    smtp_host: ""
+    smtp_port: 587
+    from_address: ""
+
+  slack:
+    enabled: false
+    webhook_url: ""
+
+  # Tipos de notificaciones
+  events:
+    - "high_occupancy"
+    - "low_occupancy"
+    - "pricing_error"
+    - "system_error"
+    - "model_retrained"
+
+# Configuración del estadio
+stadium:
+  name: "Son Moix"
+  capacity: 23142
+  location:
+    city: "Palma de Mallorca"
+    country: "España"
+    latitude: 39.590
+    longitude: 2.630
+
+  # Configuración de zonas
+  zone_categories:
+    - "VIP"
+    - "Premium"
+    - "Standard"
+    - "Reduced"
+
+  # Servicios disponibles
+  amenities:
+    - "parking"
+    - "food_court"
+    - "merchandise"
+    - "wifi"
