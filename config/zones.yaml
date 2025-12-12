@@ -1,0 +1,392 @@
+# Configuración de Zonas del Estadio Son Moix
+# Definición completa de todas las zonas y sectores
+
+# Capacidad total del estadio
+stadium:
+  name: "Son Moix"
+  total_capacity: 23142
+  location:
+    city: "Palma de Mallorca"
+    address: "Camí dels Reis s/n"
+    postal_code: "07011"
+
+# ============================================================================
+# ZONAS VIP Y PALCOS
+# ============================================================================
+vip_zones:
+  - id: "VIP01"
+    name: "Palcos VIP Principal"
+    category: "VIP"
+    sector: "Tribuna Principal"
+    capacity: 200
+    base_price: 180.00
+    min_price: 150.00
+    max_price: 450.00
+    price_multiplier: 3.0
+    is_active: true
+    amenities:
+      - "Catering exclusivo"
+      - "Parking reservado"
+      - "Acceso lounge VIP"
+      - "Asientos premium"
+      - "Atención personalizada"
+    description: "Palcos VIP con las mejores vistas y servicios exclusivos"
+
+  - id: "VIP02"
+    name: "Zona Presidencial"
+    category: "VIP"
+    sector: "Tribuna Principal"
+    capacity: 120
+    base_price: 220.00
+    min_price: 180.00
+    max_price: 550.00
+    price_multiplier: 3.5
+    is_active: true
+    amenities:
+      - "Acceso zona presidencial"
+      - "Catering premium"
+      - "Parking VIP"
+      - "Sala de espera exclusiva"
+    description: "Zona presidencial con máximo confort y exclusividad"
+
+  - id: "VIP03"
+    name: "Palcos Lateral"
+    category: "VIP"
+    sector: "Lateral"
+    capacity: 150
+    base_price: 150.00
+    min_price: 120.00
+    max_price: 375.00
+    price_multiplier: 2.5
+    is_active: true
+    amenities:
+      - "Catering"
+      - "Parking preferente"
+      - "Asientos acolchados"
+    description: "Palcos laterales con excelentes vistas"
+
+# ============================================================================
+# ZONAS PREMIUM
+# ============================================================================
+premium_zones:
+  - id: "PREM01"
+    name: "Tribuna Principal Centro"
+    category: "Premium"
+    sector: "Tribuna Principal"
+    capacity: 2500
+    base_price: 65.00
+    min_price: 45.00
+    max_price: 130.00
+    price_multiplier: 1.8
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+      - "Zona techada"
+      - "Buenas vistas"
+    description: "Tribuna principal con las mejores vistas del campo"
+
+  - id: "PREM02"
+    name: "Tribuna Principal Lateral Derecha"
+    category: "Premium"
+    sector: "Tribuna Principal"
+    capacity: 1800
+    base_price: 55.00
+    min_price: 40.00
+    max_price: 110.00
+    price_multiplier: 1.6
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+      - "Zona techada"
+    description: "Lateral derecho de tribuna principal"
+
+  - id: "PREM03"
+    name: "Tribuna Principal Lateral Izquierda"
+    category: "Premium"
+    sector: "Tribuna Principal"
+    capacity: 1800
+    base_price: 55.00
+    min_price: 40.00
+    max_price: 110.00
+    price_multiplier: 1.6
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+      - "Zona techada"
+    description: "Lateral izquierdo de tribuna principal"
+
+# ============================================================================
+# ZONAS STANDARD - PREFERENCIA
+# ============================================================================
+standard_zones:
+  - id: "STD01"
+    name: "Preferencia Fondo Norte"
+    category: "Standard"
+    sector: "Fondo Norte"
+    capacity: 3200
+    base_price: 40.00
+    min_price: 25.00
+    max_price: 80.00
+    price_multiplier: 1.3
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+      - "Vista completa del campo"
+    description: "Fondo Norte - Zona animación"
+
+  - id: "STD02"
+    name: "Preferencia Fondo Sur"
+    category: "Standard"
+    sector: "Fondo Sur"
+    capacity: 3200
+    base_price: 40.00
+    min_price: 25.00
+    max_price: 80.00
+    price_multiplier: 1.3
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+      - "Vista completa del campo"
+    description: "Fondo Sur - Zona familiar"
+
+  - id: "STD03"
+    name: "Lateral Este Centro"
+    category: "Standard"
+    sector: "Lateral Este"
+    capacity: 2400
+    base_price: 45.00
+    min_price: 30.00
+    max_price: 90.00
+    price_multiplier: 1.4
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+      - "Buena visibilidad lateral"
+    description: "Lateral Este - Zona central"
+
+  - id: "STD04"
+    name: "Lateral Este Esquina Norte"
+    category: "Standard"
+    sector: "Lateral Este"
+    capacity: 1200
+    base_price: 38.00
+    min_price: 25.00
+    max_price: 76.00
+    price_multiplier: 1.2
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+    description: "Esquina Noreste"
+
+  - id: "STD05"
+    name: "Lateral Este Esquina Sur"
+    category: "Standard"
+    sector: "Lateral Este"
+    capacity: 1200
+    base_price: 38.00
+    min_price: 25.00
+    max_price: 76.00
+    price_multiplier: 1.2
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+    description: "Esquina Sureste"
+
+  - id: "STD06"
+    name: "Lateral Oeste Centro"
+    category: "Standard"
+    sector: "Lateral Oeste"
+    capacity: 2400
+    base_price: 45.00
+    min_price: 30.00
+    max_price: 90.00
+    price_multiplier: 1.4
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+      - "Buena visibilidad lateral"
+    description: "Lateral Oeste - Zona central"
+
+  - id: "STD07"
+    name: "Lateral Oeste Esquina Norte"
+    category: "Standard"
+    sector: "Lateral Oeste"
+    capacity: 1200
+    base_price: 38.00
+    min_price: 25.00
+    max_price: 76.00
+    price_multiplier: 1.2
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+    description: "Esquina Noroeste"
+
+  - id: "STD08"
+    name: "Lateral Oeste Esquina Sur"
+    category: "Standard"
+    sector: "Lateral Oeste"
+    capacity: 1200
+    base_price: 38.00
+    min_price: 25.00
+    max_price: 76.00
+    price_multiplier: 1.2
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+    description: "Esquina Suroeste"
+
+# ============================================================================
+# ZONAS REDUCIDAS (ANFITEATRO/GENERAL)
+# ============================================================================
+reduced_zones:
+  - id: "RED01"
+    name: "Anfiteatro Norte"
+    category: "Reduced"
+    sector: "Anfiteatro"
+    capacity: 800
+    base_price: 25.00
+    min_price: 18.00
+    max_price: 50.00
+    price_multiplier: 1.0
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+      - "Zona superior"
+    description: "Zona superior con vista elevada"
+
+  - id: "RED02"
+    name: "Anfiteatro Sur"
+    category: "Reduced"
+    sector: "Anfiteatro"
+    capacity: 800
+    base_price: 25.00
+    min_price: 18.00
+    max_price: 50.00
+    price_multiplier: 1.0
+    is_active: true
+    amenities:
+      - "Asientos numerados"
+      - "Zona superior"
+    description: "Zona superior con vista elevada"
+
+  - id: "RED03"
+    name: "General Norte"
+    category: "Reduced"
+    sector: "General"
+    capacity: 600
+    base_price: 22.00
+    min_price: 15.00
+    max_price: 44.00
+    price_multiplier: 0.9
+    is_active: true
+    amenities:
+      - "Asientos numerados básicos"
+    description: "Zona económica - Fondo Norte alto"
+
+  - id: "RED04"
+    name: "General Sur"
+    category: "Reduced"
+    sector: "General"
+    capacity: 600
+    base_price: 22.00
+    min_price: 15.00
+    max_price: 44.00
+    price_multiplier: 0.9
+    is_active: true
+    amenities:
+      - "Asientos numerados básicos"
+    description: "Zona económica - Fondo Sur alto"
+
+# ============================================================================
+# ZONAS ESPECIALES
+# ============================================================================
+special_zones:
+  - id: "SPEC01"
+    name: "Zona Visitante"
+    category: "Standard"
+    sector: "Fondo Norte"
+    capacity: 872  # 3-5% de capacidad total
+    base_price: 35.00
+    min_price: 35.00  # Precio fijo para visitantes
+    max_price: 35.00
+    price_multiplier: 1.0
+    is_active: true
+    is_visitor_zone: true
+    amenities:
+      - "Asientos numerados"
+      - "Entrada independiente"
+    description: "Zona reservada para afición visitante"
+
+  - id: "SPEC02"
+    name: "Zona Accesibilidad"
+    category: "Reduced"
+    sector: "Tribuna Principal"
+    capacity: 100
+    base_price: 20.00
+    min_price: 20.00
+    max_price: 20.00
+    price_multiplier: 1.0
+    is_active: true
+    is_accessible: true
+    amenities:
+      - "Espacios PMR"
+      - "Asientos para acompañantes"
+      - "Fácil acceso"
+    description: "Zona adaptada para personas con movilidad reducida"
+
+# ============================================================================
+# CONFIGURACIÓN POR CATEGORÍA
+# ============================================================================
+category_config:
+  VIP:
+    allow_discounts: false  # No se aplican descuentos en partidos top
+    member_discount_eligible: false
+    min_purchase_quantity: 1
+    max_purchase_quantity: 10
+    requires_membership: false
+
+  Premium:
+    allow_discounts: true
+    member_discount_eligible: true
+    min_purchase_quantity: 1
+    max_purchase_quantity: 20
+    requires_membership: false
+
+  Standard:
+    allow_discounts: true
+    member_discount_eligible: true
+    min_purchase_quantity: 1
+    max_purchase_quantity: 50
+    requires_membership: false
+
+  Reduced:
+    allow_discounts: true
+    member_discount_eligible: true
+    min_purchase_quantity: 1
+    max_purchase_quantity: 50
+    requires_membership: false
+
+# ============================================================================
+# METADATOS Y TOTALES
+# ============================================================================
+summary:
+  total_zones: 21
+  total_capacity: 23142
+  capacity_by_category:
+    VIP: 470
+    Premium: 6100
+    Standard: 14600
+    Reduced: 2800
+    Special: 972
+
+  price_range:
+    min: 15.00
+    max: 550.00
+    average: 45.00
+
+metadata:
+  version: "1.0"
+  last_updated: "2024-12-12"
+  stadium: "Son Moix"
+  season: "2024-2025"
+  notes: "Configuración inicial basada en distribución estándar del estadio"

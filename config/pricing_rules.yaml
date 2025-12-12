@@ -1,0 +1,365 @@
+# Reglas de Pricing Dinámico
+# Todos los multiplicadores y factores utilizados por el motor de pricing
+
+# ============================================================================
+# MULTIPLICADORES POR COMPETICIÓN
+# ============================================================================
+competition_multipliers:
+  # Liga
+  LaLiga: 1.0
+  LaLiga_vs_top3: 2.5    # vs Real Madrid, Barcelona, Atlético
+  LaLiga_vs_top10: 1.5   # vs equipos en top 10
+  LaLiga_vs_bottom3: 0.8 # vs equipos en descenso
+
+  # Copa del Rey
+  Copa_del_Rey:
+    eliminatorias_previas: 0.7
+    octavos: 1.2
+    cuartos: 1.5
+    semifinal: 2.0
+    final: 3.0
+
+  # Amistosos
+  Amistoso: 0.6
+  Amistoso_internacional: 0.8
+
+  # Otros
+  UEFA_Europa_League: 1.8
+  UEFA_Champions_League: 3.0
+  Supercopa: 2.0
+
+# ============================================================================
+# MULTIPLICADORES POR RIVAL ESPECÍFICO
+# ============================================================================
+rival_multipliers:
+  # Equipos de máximo interés
+  "Real Madrid": 3.0
+  "FC Barcelona": 3.0
+  "Atlético Madrid": 2.5
+
+  # Equipos de alto interés
+  "Real Betis": 1.8
+  "Sevilla FC": 1.8
+  "Real Sociedad": 1.6
+  "Athletic Club": 1.6
+  "Villarreal CF": 1.5
+
+  # Equipos de interés medio
+  "Valencia CF": 1.4
+  "Girona FC": 1.3
+  "CA Osasuna": 1.3
+  "Celta de Vigo": 1.2
+  "Getafe CF": 1.2
+
+  # Equipos de menor interés
+  "UD Las Palmas": 1.1
+  "Deportivo Alavés": 1.1
+  "RCD Espanyol": 1.1
+  "Rayo Vallecano": 1.1
+
+  # Equipos en zona de descenso (ajuste dinámico)
+  relegation_zone_penalty: 0.85
+
+  # Rivales históricos o derbies
+  derby_multiplier: 2.2
+
+# ============================================================================
+# FACTOR DE DECAIMIENTO TEMPORAL (Time Decay)
+# ============================================================================
+# Multiplicador según días antes del partido
+time_decay_factors:
+  # Venta anticipada (descuentos)
+  - min_days: 60
+    max_days: 999
+    multiplier: 0.75
+    description: "Early bird - Venta super anticipada"
+
+  - min_days: 30
+    max_days: 59
+    multiplier: 0.85
+    description: "Venta anticipada estándar"
+
+  - min_days: 21
+    max_days: 29
+    multiplier: 0.95
+    description: "Venta anticipada tardía"
+
+  # Venta regular
+  - min_days: 14
+    max_days: 20
+    multiplier: 1.0
+    description: "Precio base - 2-3 semanas antes"
+
+  - min_days: 7
+    max_days: 13
+    multiplier: 1.1
+    description: "Última semana - aumento moderado"
+
+  # Venta de última hora (incrementos)
+  - min_days: 3
+    max_days: 6
+    multiplier: 1.25
+    description: "Últimos días - aumento significativo"
+
+  - min_days: 1
+    max_days: 2
+    multiplier: 1.4
+    description: "48 horas antes - máximo incremento"
+
+  - min_days: 0
+    max_days: 0
+    multiplier: 1.5
+    description: "Día del partido - premium máximo"
+
+# ============================================================================
+# PRESIÓN DE INVENTARIO (Inventory Pressure)
+# ============================================================================
+# Multiplicador según % de ocupación de la zona
+inventory_pressure_factors:
+  # Ocupación baja - promover ventas
+  - min_occupancy: 0.0
+    max_occupancy: 0.20
+    multiplier: 0.80
+    description: "Ocupación crítica baja - descuento agresivo"
+
+  - min_occupancy: 0.20
+    max_occupancy: 0.40
+    multiplier: 0.90
+    description: "Ocupación baja - descuento moderado"
+
+  - min_occupancy: 0.40
+    max_occupancy: 0.60
+    multiplier: 1.0
+    description: "Ocupación media - precio base"
+
+  # Ocupación media-alta - mantener
+  - min_occupancy: 0.60
+    max_occupancy: 0.75
+    multiplier: 1.05
+    description: "Ocupación buena - incremento ligero"
+
+  # Ocupación alta - maximizar revenue
+  - min_occupancy: 0.75
+    max_occupancy: 0.85
+    multiplier: 1.15
+    description: "Ocupación alta - incremento moderado"
+
+  - min_occupancy: 0.85
+    max_occupancy: 0.92
+    multiplier: 1.30
+    description: "Ocupación muy alta - incremento significativo"
+
+  - min_occupancy: 0.92
+    max_occupancy: 0.97
+    multiplier: 1.50
+    description: "Casi sold out - precio premium"
+
+  - min_occupancy: 0.97
+    max_occupancy: 1.0
+    multiplier: 1.75
+    description: "Últimas entradas - precio máximo"
+
+# ============================================================================
+# CONDICIONES ESPECIALES
+# ============================================================================
+special_conditions:
+  # Día de la semana
+  weekday:
+    monday: 0.95
+    tuesday: 0.95
+    wednesday: 0.95
+    thursday: 0.95
+    friday: 1.05
+    saturday: 1.15
+    sunday: 1.10
+
+  # Festivos y vacaciones
+  holiday:
+    national_holiday: 1.20
+    regional_holiday: 1.10
+    school_vacation: 1.15
+    christmas_season: 1.25
+    easter_week: 1.20
+
+  # Horario del partido
+  match_time:
+    morning: 0.90      # Antes de 14:00
+    afternoon: 1.05    # 14:00 - 18:00
+    evening: 1.15      # 18:00 - 21:00
+    night: 1.10        # Después de 21:00
+
+  # Clima (ajuste adicional)
+  weather:
+    excellent: 1.05    # Temperatura ideal, sin lluvia
+    good: 1.0          # Condiciones normales
+    fair: 0.95         # Lluvia ligera o frío moderado
+    poor: 0.85         # Lluvia fuerte, frío extremo, calor extremo
+
+  # Derby local
+  derby: 2.0
+
+  # Partido decisivo (clasificación, descenso, título)
+  decisive_match:
+    title_decider: 2.5
+    europe_qualification: 1.8
+    relegation_battle: 1.6
+
+  # Eventos especiales
+  special_events:
+    season_opener: 1.3
+    season_closer: 1.2
+    milestone_match: 1.4  # Ej: 1000 partidos en el estadio
+    player_tribute: 1.3   # Homenaje a jugador
+
+# ============================================================================
+# RESTRICCIONES Y LÍMITES
+# ============================================================================
+constraints:
+  # Cambio máximo de precio en un ajuste (%)
+  max_price_increase_percent: 20
+  max_price_decrease_percent: 25
+
+  # Límite de cambios
+  max_changes_per_day: 5
+  max_changes_per_week: 15
+
+  # Tiempo mínimo entre cambios
+  min_hours_between_changes: 2
+
+  # Blackout periods (no cambiar precios)
+  blackout_periods:
+    - hours_before_match: 24
+      reason: "Estabilidad pre-partido"
+
+    - hours_before_match: 0
+      duration_hours: 2
+      reason: "Durante el partido anterior en casa"
+
+  # Límites absolutos
+  absolute_limits:
+    min_price_multiplier: 0.50  # Nunca bajar más de 50%
+    max_price_multiplier: 3.0   # Nunca subir más de 300%
+
+    # Umbral mínimo de cambio (evitar cambios triviales)
+    min_price_change_euros: 0.50
+
+# ============================================================================
+# ESTRATEGIAS DINÁMICAS
+# ============================================================================
+dynamic_strategies:
+  # Estrategia basada en velocidad de venta
+  velocity_based:
+    enabled: true
+
+    # Tickets vendidos por hora en las últimas 24h
+    thresholds:
+      very_high: 50    # > 50 tickets/hora
+      high: 20         # 20-50 tickets/hora
+      medium: 10       # 10-20 tickets/hora
+      low: 5           # 5-10 tickets/hora
+      very_low: 5      # < 5 tickets/hora
+
+    multipliers:
+      very_high: 1.20
+      high: 1.10
+      medium: 1.0
+      low: 0.95
+      very_low: 0.85
+
+  # Estrategia de last-minute
+  last_minute:
+    enabled: true
+    trigger_days: 3
+    trigger_occupancy: 0.60  # Si < 60% a 3 días
+    discount_percent: 15
+
+  # Estrategia de grupo (venta de múltiples entradas)
+  group_discount:
+    enabled: true
+    min_tickets: 4
+    discount_tiers:
+      - min: 4
+        max: 9
+        discount: 0.05  # 5% descuento
+      - min: 10
+        max: 19
+        discount: 0.10  # 10% descuento
+      - min: 20
+        max: 999
+        discount: 0.15  # 15% descuento
+
+  # Estrategia de fidelización
+  loyalty:
+    enabled: true
+    member_discount: 0.10     # 10% para socios
+    season_ticket_holder: 0.15 # 15% para abonados
+    vip_member: 0.05          # 5% adicional para VIP
+
+# ============================================================================
+# ELASTICIDAD DE PRECIO (Price Elasticity)
+# ============================================================================
+# Sensibilidad de la demanda al precio por tipo de partido
+price_elasticity:
+  high_demand_match:
+    elasticity: -0.3  # Baja elasticidad (demanda poco sensible)
+    description: "Partidos top - clientes dispuestos a pagar más"
+
+  medium_demand_match:
+    elasticity: -0.8  # Elasticidad media
+    description: "Partidos regulares - sensibilidad moderada"
+
+  low_demand_match:
+    elasticity: -1.5  # Alta elasticidad (muy sensible)
+    description: "Partidos de bajo interés - muy sensibles al precio"
+
+# ============================================================================
+# REGLAS DE NEGOCIO ADICIONALES
+# ============================================================================
+business_rules:
+  # No aplicar descuentos a zonas VIP en partidos top
+  vip_no_discount_matches:
+    - "Real Madrid"
+    - "FC Barcelona"
+    - "Atlético Madrid"
+
+  # Precio mínimo garantizado para socios
+  member_minimum_discount: 0.10
+
+  # Promociones automáticas
+  auto_promotions:
+    - name: "Happy Hour"
+      enabled: false
+      days_before: 14
+      duration_hours: 4
+      discount: 0.15
+
+    - name: "Early Bird"
+      enabled: true
+      days_before: 45
+      discount: 0.20
+      max_tickets: 5000
+
+    - name: "Last Call"
+      enabled: true
+      hours_before: 48
+      condition: "occupancy < 0.70"
+      discount: 0.15
+
+# ============================================================================
+# CONFIGURACIÓN DE ZONAS PREMIUM
+# ============================================================================
+premium_zones_rules:
+  # Zonas VIP y Premium tienen reglas especiales
+  min_multiplier: 0.80  # Nunca bajar más de 20%
+  max_multiplier: 2.50
+  apply_velocity_adjustments: false
+  apply_weather_adjustments: false
+
+# ============================================================================
+# METADATOS
+# ============================================================================
+metadata:
+  version: "1.0"
+  last_updated: "2024-12-12"
+  reviewed_by: "Revenue Management Team"
+  notes: "Reglas iniciales basadas en análisis de mercado y competencia"
