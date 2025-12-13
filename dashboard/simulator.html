@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,7 +29,7 @@
             border-radius: 12px;
             padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -69,7 +70,7 @@
             background: white;
             border-radius: 12px;
             padding: 24px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .card h2 {
@@ -239,7 +240,7 @@
         }
 
         .zone-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             border-color: #667eea;
         }
 
@@ -353,8 +354,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .error {
@@ -446,6 +452,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -600,7 +607,7 @@
     </div>
 
     <script>
-        const API_BASE = 'http://127.0.0.1:8000';
+        const API_BASE = '';
 
         // Update value displays
         document.getElementById('rivalStrength').addEventListener('input', (e) => {
@@ -710,13 +717,13 @@
             const zonesHTML = `
                 <div class="pricing-grid">
                     ${data.zones.map(zone => {
-                        const occupancy = (zone.occupancy_percent || 0) * 100;
-                        const occupancyClass = occupancy > 80 ? 'high' : '';
-                        const priceChange = ((zone.current_price - zone.base_price) / zone.base_price * 100).toFixed(1);
-                        const changeClass = priceChange > 0 ? 'positive' : 'negative';
-                        const changeSign = priceChange > 0 ? '+' : '';
+                const occupancy = (zone.occupancy_percent || 0) * 100;
+                const occupancyClass = occupancy > 80 ? 'high' : '';
+                const priceChange = ((zone.current_price - zone.base_price) / zone.base_price * 100).toFixed(1);
+                const changeClass = priceChange > 0 ? 'positive' : 'negative';
+                const changeSign = priceChange > 0 ? '+' : '';
 
-                        return `
+                return `
                             <div class="zone-card">
                                 <div class="zone-header">
                                     <span class="zone-name">${zone.zone_name || zone.zone_id}</span>
@@ -735,7 +742,7 @@
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+            }).join('')}
                 </div>
             `;
 
@@ -743,4 +750,5 @@
         }
     </script>
 </body>
+
 </html>

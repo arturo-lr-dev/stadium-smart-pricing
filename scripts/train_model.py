@@ -16,6 +16,7 @@ sys.path.insert(0, str(project_root))
 
 from src.core.logging import setup_logging
 from src.ml.models.demand_model import DemandModel
+from src.ml.training.train_demand import load_training_data, prepare_features_and_target
 
 # Setup logging
 setup_logging()
@@ -29,13 +30,39 @@ def train_model():
     logger.info("=" * 60)
 
     try:
-        # Initialize model
+        # Load historical data from database
+        logger.info("Loading training data from database...")
+        matches, zones, sales_df = load_training_data()
+        
+        if len(matches) == 0 or len(sales_df) == 0:
+            logger.error("❌ No training data available. Please seed the database first.")
+            logger.info("   Run: python scripts/seed_historical_data.py")
+            return False
+        
+        # Prepare features and target
+        logger.info("Preparing features and target...")
+        X, y = prepare_features_and_target(matches, zones, sales_df)
+        
+        if len(X) < 10:
+            logger.error(f"❌ Insufficient training samples ({len(X)}). Need at least 10.")
+            return False
+        
+        logger.info(f"   Training samples: {len(X)}")
+        logger.info(f"   Features: {len(X.columns)}")
+        logger.info(f"   Target mean: {y.mean():.3f}, std: {y.std():.3f}")
+
+        # Initialize and train model
         logger.info("Initializing DemandModel...")
         model = DemandModel()
 
-        # Train model (uses synthetic/historical data)
+        # Train model with prepared data
         logger.info("Training model...")
-        model.train()
+        metrics = model.train(X, y)
+        
+        logger.info("Training completed!")
+        logger.info(f"   Validation MAE: {metrics['val_mae']:.4f}")
+        logger.info(f"   Validation RMSE: {metrics['val_rmse']:.4f}")
+        logger.info(f"   Validation R²: {metrics['val_r2']:.4f}")
 
         # Save model
         model_path = project_root / "models" / "demand_model.pkl"

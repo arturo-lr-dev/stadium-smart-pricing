@@ -481,7 +481,8 @@
                 <h1>Smart Pricing Dashboard <span class="api-status" id="apiStatus"></span></h1>
                 <p>Sistema de pricing dinámico para estadios de fútbol - Demo</p>
             </div>
-            <a href="/dashboard/simulator.html" class="refresh-btn" style="text-decoration: none; display: inline-block; white-space: nowrap;">
+            <a href="/dashboard/simulator.html" class="refresh-btn"
+                style="text-decoration: none; display: inline-block; white-space: nowrap;">
                 Simulador
             </a>
         </div>
@@ -514,7 +515,7 @@
     </div>
 
     <script>
-        const API_BASE = 'http://127.0.0.1:8000';
+        const API_BASE = '';
         let selectedMatchId = null;
 
         // Check API status
@@ -625,8 +626,8 @@
                                     </div>
                                     <div class="factors">
                                         ${zone.factors ? Object.entries(zone.factors)
-                                            .filter(([key, value]) => typeof value === 'number')
-                                            .map(([key, value]) => `
+                            .filter(([key, value]) => typeof value === 'number')
+                            .map(([key, value]) => `
                                             <div class="factor">
                                                 <span class="factor-label">${formatFactorName(key)}</span>
                                                 <span class="factor-value">${value.toFixed(2)}x</span>
