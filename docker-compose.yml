@@ -93,6 +93,80 @@ services:
       - smart-pricing-network
     restart: unless-stopped
 
+  # Price Updater Worker
+  price-updater:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: smart-pricing-price-updater
+    command: python -m src.workers price_updater --interval 300 --lookback-days 30
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/smart_pricing
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - smart-pricing-network
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./models:/app/models:rw
+
+  # Data Collector Worker
+  data-collector:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: smart-pricing-data-collector
+    command: python -m src.workers data_collector --interval 3600
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/smart_pricing
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - smart-pricing-network
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+
+  # Model Retrainer Worker
+  model-retrainer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: smart-pricing-model-retrainer
+    command: python -m src.workers model_retrainer --interval 604800 --min-samples 100 --improvement-threshold 0.05
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/smart_pricing
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - smart-pricing-network
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./models:/app/models:rw
+
 volumes:
   postgres_data:
     driver: local
