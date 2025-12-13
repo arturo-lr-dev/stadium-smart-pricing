@@ -959,82 +959,97 @@
 
 ---
 
-## FASE 9: Background Workers
+## FASE 9: Background Workers ✅ COMPLETED
+
+**Status:** ✅ COMPLETED (2025-12-13)
+**Documentation:** See [PHASE_9_COMPLETION.md](PHASE_9_COMPLETION.md)
 
 ### Worker Infrastructure
 
 #### src/workers/base_worker.py
-- [ ] Crear clase base `BaseWorker`
-- [ ] Implementar método abstracto `run()`
-- [ ] Implementar manejo de señales (SIGTERM, SIGINT)
-- [ ] Implementar logging
-- [ ] Implementar health check
+- [x] Crear clase base `BaseWorker`
+- [x] Implementar método abstracto `run()`
+- [x] Implementar manejo de señales (SIGTERM, SIGINT)
+- [x] Implementar logging
+- [x] Implementar health check
 
 ### Price Update Worker
 
 #### src/workers/price_updater.py
-- [ ] Crear clase `PriceUpdaterWorker(BaseWorker)`
-- [ ] Inyectar PricingEngine
-- [ ] Implementar método `run()`
-  - [ ] Loop infinito con intervalo configurable
-  - [ ] Obtener matches próximos (X días)
-  - [ ] Calcular pricing para cada uno
-  - [ ] Decidir si actualizar precio
-  - [ ] Guardar en Redis (cache)
-  - [ ] Guardar en histórico (DB)
-  - [ ] Dormir hasta próxima ejecución
-- [ ] Implementar manejo de errores (retry con backoff)
-- [ ] Añadir métricas (tiempo de ejecución, matches procesados)
+- [x] Crear clase `PriceUpdaterWorker(BaseWorker)`
+- [x] Inyectar PricingEngine
+- [x] Implementar método `run()`
+  - [x] Loop infinito con intervalo configurable
+  - [x] Obtener matches próximos (X días)
+  - [x] Calcular pricing para cada uno
+  - [x] Decidir si actualizar precio
+  - [x] Guardar en Redis (cache)
+  - [x] Guardar en histórico (DB)
+  - [x] Dormir hasta próxima ejecución
+- [x] Implementar manejo de errores (retry con backoff)
+- [x] Añadir métricas (tiempo de ejecución, matches procesados)
 
 ### Data Collection Worker
 
 #### src/workers/data_collector.py
-- [ ] Crear clase `DataCollectorWorker(BaseWorker)`
-- [ ] Inyectar integraciones externas
-- [ ] Implementar método `run()`
-  - [ ] Loop con intervalo configurable
-  - [ ] Recolectar datos de football API
-  - [ ] Recolectar datos de weather API
-  - [ ] Recolectar datos de analytics
-  - [ ] Guardar en cache/DB
-  - [ ] Dormir hasta próxima ejecución
-- [ ] Implementar rate limiting
-- [ ] Implementar retry con exponential backoff
+- [x] Crear clase `DataCollectorWorker(BaseWorker)`
+- [x] Inyectar integraciones externas
+- [x] Implementar método `run()`
+  - [x] Loop con intervalo configurable
+  - [x] Recolectar datos de football API
+  - [x] Recolectar datos de weather API
+  - [x] Recolectar datos de analytics
+  - [x] Guardar en cache/DB
+  - [x] Dormir hasta próxima ejecución
+- [x] Implementar rate limiting
+- [x] Implementar retry con exponential backoff
 
 ### Model Retraining Worker
 
 #### src/workers/model_retrainer.py
-- [ ] Crear clase `ModelRetrainerWorker(BaseWorker)`
-- [ ] Implementar método `run()`
-  - [ ] Ejecutar semanalmente (cron-like)
-  - [ ] Cargar datos históricos nuevos
-  - [ ] Re-entrenar modelo de demanda
-  - [ ] Evaluar modelo nuevo vs anterior
-  - [ ] Si mejora, reemplazar modelo en producción
-  - [ ] Notificar resultado
-- [ ] Implementar versionado de modelos
-- [ ] Implementar rollback si modelo nuevo es peor
+- [x] Crear clase `ModelRetrainerWorker(BaseWorker)`
+- [x] Implementar método `run()`
+  - [x] Ejecutar semanalmente (cron-like)
+  - [x] Cargar datos históricos nuevos
+  - [x] Re-entrenar modelo de demanda
+  - [x] Evaluar modelo nuevo vs anterior
+  - [x] Si mejora, reemplazar modelo en producción
+  - [x] Notificar resultado
+- [x] Implementar versionado de modelos
+- [x] Implementar rollback si modelo nuevo es peor
 
 ### Worker Orchestration
 
 #### src/workers/__main__.py
-- [ ] Crear script principal para ejecutar workers
-- [ ] Usar argparse para seleccionar worker
-- [ ] Implementar `main()`:
-  - [ ] Cargar configuración
-  - [ ] Setup logging
-  - [ ] Instanciar worker seleccionado
-  - [ ] Ejecutar worker
-- [ ] Ejemplo: `python -m src.workers price_updater`
+- [x] Crear script principal para ejecutar workers
+- [x] Usar argparse para seleccionar worker
+- [x] Implementar `main()`:
+  - [x] Cargar configuración
+  - [x] Setup logging
+  - [x] Instanciar worker seleccionado
+  - [x] Ejecutar worker
+- [x] Ejemplo: `python -m src.workers price_updater`
 
 ### Worker Tests
 
-- [ ] Crear `tests/unit/workers/test_price_updater.py`
-- [ ] Crear `tests/unit/workers/test_data_collector.py`
-- [ ] Mockear dependencias externas
-- [ ] Testear lógica de cada worker
-- [ ] Testear manejo de errores
-- [ ] Ejecutar tests: `pytest tests/unit/workers/`
+- [x] Crear `tests/unit/workers/test_price_updater.py`
+- [x] Crear `tests/unit/workers/test_data_collector.py`
+- [x] Crear `tests/unit/workers/test_base_worker.py`
+- [x] Crear `tests/unit/workers/test_model_retrainer.py`
+- [x] Mockear dependencias externas
+- [x] Testear lógica de cada worker
+- [x] Testear manejo de errores
+- [x] Ejecutar tests: `pytest tests/unit/workers/` (50/50 tests passing ✅)
+
+### Docker Integration
+
+- [x] Crear `docker/Dockerfile.worker`
+- [x] Añadir workers a `docker-compose.yml`
+  - [x] price-updater service
+  - [x] data-collector service
+  - [x] model-retrainer service
+- [x] Configurar health checks
+- [x] Configurar restart policies
 
 ---
 
