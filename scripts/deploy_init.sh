@@ -12,7 +12,7 @@ pip install -r requirements.txt
 
 # 2. Initialize database
 echo "🗄️  Initializing database..."
-python scripts/init_db.py --create
+python scripts/init_db.py --create --force
 
 # 3. Seed initial data
 echo "🌱 Seeding database with sample data..."
