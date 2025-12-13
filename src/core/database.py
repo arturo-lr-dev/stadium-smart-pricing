@@ -8,7 +8,7 @@ for the Smart Pricing system.
 from contextlib import contextmanager
 from typing import Generator
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
@@ -187,7 +187,7 @@ def check_database_connection() -> bool:
     try:
         engine = get_engine()
         with engine.connect() as connection:
-            connection.execute("SELECT 1")
+            connection.execute(text("SELECT 1"))
         logger.info("Database connection check: OK")
         return True
     except Exception as e:
