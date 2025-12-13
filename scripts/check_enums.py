@@ -1,5 +1,12 @@
 import sqlalchemy
 from sqlalchemy import create_engine, text
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from src.core.config import get_settings
 
 settings = get_settings()
