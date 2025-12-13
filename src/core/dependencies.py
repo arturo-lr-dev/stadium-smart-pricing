@@ -196,12 +196,12 @@ def get_rules_engine():
     return RulesEngine(config_path="config/pricing_rules.yaml")
 
 
-def get_pricing_engine(db: Session = None):
+def get_pricing_engine(db: Session = Depends(get_db)):
     """
     Dependency para obtener el PricingEngine.
 
     Args:
-        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+        db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
         Instancia de PricingEngine
@@ -213,10 +213,6 @@ def get_pricing_engine(db: Session = None):
         >>>     return engine.calculate_match_pricing(match, zones)
     """
     from src.domain.services.pricing_engine import PricingEngine
-
-    if db is None:
-        # Para uso directo (no como dependency de FastAPI)
-        db = next(get_db())
 
     return PricingEngine(
         rules_engine=get_rules_engine(),
@@ -252,12 +248,12 @@ def get_demand_predictor():
     return DemandPredictor()
 
 
-def get_inventory_manager(db: Session = None):
+def get_inventory_manager(db: Session = Depends(get_db)):
     """
     Dependency para obtener el InventoryManager.
 
     Args:
-        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+        db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
         Instancia de InventoryManager
@@ -269,10 +265,6 @@ def get_inventory_manager(db: Session = None):
         >>>     return manager.get_match_inventory("match_123")
     """
     from src.domain.services.inventory_manager import InventoryManager
-
-    if db is None:
-        # Para uso directo (no como dependency de FastAPI)
-        db = next(get_db())
 
     sale_repo = get_sale_repository(db)
     zone_repo = get_zone_repository(db)
@@ -294,12 +286,12 @@ def get_inventory_manager(db: Session = None):
 # ============================================================================
 
 
-def get_match_repository(db: Session = None):
+def get_match_repository(db: Session = Depends(get_db)):
     """
     Dependency para obtener el MatchRepository.
 
     Args:
-        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+        db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
         Instancia de MatchRepository
@@ -312,19 +304,15 @@ def get_match_repository(db: Session = None):
     """
     from src.domain.repositories.match_repository import MatchRepository
 
-    if db is None:
-        # Para uso directo (no como dependency de FastAPI)
-        db = next(get_db())
-
     return MatchRepository(db)
 
 
-def get_zone_repository(db: Session = None):
+def get_zone_repository(db: Session = Depends(get_db)):
     """
     Dependency para obtener el ZoneRepository.
 
     Args:
-        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+        db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
         Instancia de ZoneRepository
@@ -337,19 +325,15 @@ def get_zone_repository(db: Session = None):
     """
     from src.domain.repositories.zone_repository import ZoneRepository
 
-    if db is None:
-        # Para uso directo (no como dependency de FastAPI)
-        db = next(get_db())
-
     return ZoneRepository(db)
 
 
-def get_sale_repository(db: Session = None):
+def get_sale_repository(db: Session = Depends(get_db)):
     """
     Dependency para obtener el SaleRepository.
 
     Args:
-        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+        db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
         Instancia de SaleRepository
@@ -362,19 +346,15 @@ def get_sale_repository(db: Session = None):
     """
     from src.domain.repositories.sale_repository import SaleRepository
 
-    if db is None:
-        # Para uso directo (no como dependency de FastAPI)
-        db = next(get_db())
-
     return SaleRepository(db)
 
 
-def get_pricing_repository(db: Session = None):
+def get_pricing_repository(db: Session = Depends(get_db)):
     """
     Dependency para obtener el PricingHistoryRepository.
 
     Args:
-        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
+        db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
         Instancia de PricingHistoryRepository
@@ -386,10 +366,6 @@ def get_pricing_repository(db: Session = None):
         >>>     return repo.get_all()
     """
     from src.domain.repositories.pricing_repository import PricingHistoryRepository
-
-    if db is None:
-        # Para uso directo (no como dependency de FastAPI)
-        db = next(get_db())
 
     return PricingHistoryRepository(db)
 
