@@ -168,7 +168,7 @@ class PricingEngine:
         sold_tickets, available_tickets = self.inventory_manager.get_zone_inventory(
             match.id, zone.id
         )
-        occupancy_percent = (sold_tickets / zone.capacity * 100) if zone.capacity > 0 else 0.0
+        occupancy_percent = (sold_tickets / zone.capacity) if zone.capacity > 0 else 0.0
 
         # Calculate all pricing factors
         factors = self._calculate_pricing_factors(

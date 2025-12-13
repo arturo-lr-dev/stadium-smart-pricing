@@ -23,10 +23,10 @@ class PricingFactors(BaseModel):
         ..., description="Predicted demand score from ML model", ge=0.0, le=1.0
     )
     time_factor: float = Field(
-        ..., description="Time-based multiplier (urgency)", ge=0.5, le=2.0
+        ..., description="Time-based multiplier (urgency)", ge=0.1, le=2.0
     )
     inventory_factor: float = Field(
-        ..., description="Inventory pressure multiplier", ge=0.7, le=1.5
+        ..., description="Inventory pressure multiplier", ge=0.1, le=1.5
     )
     competition_factor: float = Field(
         ..., description="Competition importance multiplier", ge=1.0, le=3.0
