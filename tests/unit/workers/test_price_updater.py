@@ -54,18 +54,18 @@ def mock_dependencies():
 
 def create_sample_match():
     """Create a sample match for testing."""
-    return Match(
-        id="match1",
-        home_team="Real Mallorca",
-        away_team="FC Barcelona",
-        competition=CompetitionType.LA_LIGA,
-        date=datetime.now() + timedelta(days=7),
-        venue="Son Moix",
-        capacity=23142,
-        is_derby=False,
-        is_holiday=False,
-        status=MatchStatus.SCHEDULED,
-    )
+    return Match.model_validate({
+        "id": "match1",
+        "home_team": "Real Mallorca",
+        "away_team": "FC Barcelona",
+        "competition": "la_liga",
+        "match_date": datetime.now() + timedelta(days=7),
+        "venue": "Son Moix",
+        "capacity": 23142,
+        "is_derby": False,
+        "is_holiday": False,
+        "status": "scheduled",
+    })
 
 
 def create_sample_zone():

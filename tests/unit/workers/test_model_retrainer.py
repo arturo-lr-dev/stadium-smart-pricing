@@ -63,18 +63,18 @@ def create_sample_matches(count=10):
     """Create sample matches for testing."""
     matches = []
     for i in range(count):
-        match = Match(
-            id=f"match{i}",
-            home_team="Real Mallorca",
-            away_team=f"Team {i}",
-            competition=CompetitionType.LA_LIGA,
-            date=datetime.now() - timedelta(days=i * 7),
-            venue="Son Moix",
-            capacity=23142,
-            is_derby=False,
-            is_holiday=False,
-            status=MatchStatus.COMPLETED,
-        )
+        match = Match.model_validate({
+            "id": f"match{i}",
+            "home_team": "Real Mallorca",
+            "away_team": f"Team {i}",
+            "competition": "la_liga",
+            "match_date": datetime.now() - timedelta(days=i * 7),
+            "venue": "Son Moix",
+            "capacity": 23142,
+            "is_derby": False,
+            "is_holiday": False,
+            "status": "completed",
+        })
         matches.append(match)
     return matches
 
@@ -134,18 +134,18 @@ def test_load_training_data_filters_incomplete_matches(mock_dependencies):
 
     # Mix of completed and scheduled matches
     matches = create_sample_matches(5)
-    scheduled_match = Match(
-        id="match_scheduled",
-        home_team="Real Mallorca",
-        away_team="Team X",
-        competition=CompetitionType.LA_LIGA,
-        date=datetime.now() + timedelta(days=7),
-        venue="Son Moix",
-        capacity=23142,
-        is_derby=False,
-        is_holiday=False,
-        status=MatchStatus.SCHEDULED,
-    )
+    scheduled_match = Match.model_validate({
+        "id": "match_scheduled",
+        "home_team": "Real Mallorca",
+        "away_team": "Team X",
+        "competition": "la_liga",
+        "match_date": datetime.now() + timedelta(days=7),
+        "venue": "Son Moix",
+        "capacity": 23142,
+        "is_derby": False,
+        "is_holiday": False,
+        "status": "scheduled",
+    })
     all_matches = matches + [scheduled_match]
 
     mock_dependencies["match_repo"].get_by_date_range.return_value = all_matches
