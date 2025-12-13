@@ -10,10 +10,10 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator, Callable
 
-import redis
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from src.api.responses import (
@@ -61,11 +61,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     settings = get_settings()
 
     # Setup logging
-    setup_logging(
-        level=settings.logging.level,
-        format_type=settings.logging.format,
-        log_file=settings.logging.file,
-    )
+    setup_logging()
 
     # Validate configuration
     warnings = settings.validate_configuration()
@@ -98,7 +94,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         # Import here to avoid circular dependencies
         from src.domain.services.demand_predictor import DemandPredictor
 
-        predictor = DemandPredictor()
+        predictor = DemandPredictor(model_path=settings.ml.model_path)
         # Try to load the model
         if predictor.model is not None:
             app_state["ml_model_loaded"] = True
@@ -434,11 +430,22 @@ def create_app(settings: Settings = None) -> FastAPI:
         }
 
     # Include routers
-    from src.api import admin, analytics, pricing
+    from src.api import admin, analytics, pricing, simulator
 
     app.include_router(pricing.router, prefix="/api/v1", tags=["Pricing"])
     app.include_router(admin.router, prefix="/api/v1", tags=["Admin"])
     app.include_router(analytics.router, prefix="/api/v1", tags=["Analytics"])
+    app.include_router(simulator.router, prefix="/api/v1", tags=["Simulator"])
+
+    # Mount static files for dashboard
+    try:
+        from pathlib import Path
+        dashboard_path = Path(__file__).parent.parent.parent / "dashboard"
+        if dashboard_path.exists():
+            app.mount("/dashboard", StaticFiles(directory=str(dashboard_path), html=True), name="dashboard")
+            logger.info(f"Dashboard mounted at /dashboard from {dashboard_path}")
+    except Exception as e:
+        logger.warning(f"Could not mount dashboard: {e}")
 
     return app
 
