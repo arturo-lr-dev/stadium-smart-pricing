@@ -1,13 +1,14 @@
 """
 Demand Predictor for ticket demand estimation.
 
-This module contains a basic DemandPredictor that uses heuristics to estimate demand.
-A full ML-based predictor will be implemented in Phase 7.
+Uses ML model for demand prediction with heuristic fallback.
+Phase 7 implementation - ML-based demand prediction.
 """
 
 import logging
 from datetime import datetime
 from typing import Optional
+from pathlib import Path
 
 from src.domain.models.match import Match
 from src.domain.models.zone import Zone
@@ -19,8 +20,8 @@ class DemandPredictor:
     """
     Demand Predictor for estimating ticket demand.
 
-    This is a basic heuristic-based predictor. A full ML-based predictor
-    will be implemented in Phase 7 (ML - Demand Prediction).
+    Uses trained ML model for predictions. Falls back to heuristic-based
+    predictions if model is not available.
 
     The demand score ranges from 0.0 to 1.0, where:
     - 0.0-0.3: Low demand
@@ -29,9 +30,31 @@ class DemandPredictor:
     - 0.85-1.0: Very high demand
     """
 
-    def __init__(self):
-        """Initialize the Demand Predictor."""
-        logger.info("DemandPredictor initialized (heuristic mode)")
+    def __init__(self, model_path: Optional[str] = None):
+        """
+        Initialize the Demand Predictor.
+
+        Args:
+            model_path: Path to trained ML model. If None, uses heuristics.
+        """
+        self.model = None
+        self.model_path = model_path
+        self.use_ml = False
+
+        # Try to load ML model
+        if model_path and Path(model_path).exists():
+            try:
+                from src.ml.models.demand_model import DemandModel
+                self.model = DemandModel()
+                self.model.load(model_path)
+                self.use_ml = True
+                logger.info(f"DemandPredictor initialized with ML model from {model_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load ML model: {e}. Using heuristic fallback.")
+                self.model = None
+                self.use_ml = False
+        else:
+            logger.info("DemandPredictor initialized (heuristic mode - no model provided)")
 
     def predict_demand(
         self,
@@ -43,7 +66,56 @@ class DemandPredictor:
         """
         Predict demand score for a match and zone.
 
-        This is a simplified heuristic-based prediction. Factors considered:
+        Uses ML model if available, otherwise falls back to heuristics.
+
+        Args:
+            match: Match object
+            zone: Zone object
+            days_to_match: Days until the match
+            current_occupancy: Current occupancy percentage (0-100)
+
+        Returns:
+            Demand score between 0.0 and 1.0
+        """
+        # Use ML model if available
+        if self.use_ml and self.model:
+            try:
+                demand_score = self.model.predict_demand(match, zone, days_to_match)
+                logger.debug(
+                    f"ML predicted demand for match {match.id}, zone {zone.id}: "
+                    f"{demand_score:.3f}"
+                )
+                return demand_score
+            except Exception as e:
+                logger.warning(
+                    f"ML prediction failed: {e}. Falling back to heuristics."
+                )
+                # Fall through to heuristic method
+
+        # Heuristic fallback
+        demand_score = self._predict_demand_heuristic(
+            match, zone, days_to_match, current_occupancy
+        )
+
+        logger.debug(
+            f"Heuristic predicted demand for match {match.id}, zone {zone.id}: "
+            f"{demand_score:.3f} (days_to_match={days_to_match}, "
+            f"occupancy={current_occupancy:.1f}%)"
+        )
+
+        return demand_score
+
+    def _predict_demand_heuristic(
+        self,
+        match: Match,
+        zone: Zone,
+        days_to_match: int,
+        current_occupancy: float = 0.0,
+    ) -> float:
+        """
+        Heuristic-based demand prediction (fallback method).
+
+        Factors considered:
         - Match importance (competition, derby, team positions)
         - Time until match
         - Zone category
@@ -68,7 +140,6 @@ class DemandPredictor:
         # Factor 2: Derby bonus
         if match.is_derby:
             demand_score += 0.15
-            logger.debug(f"Derby match, adding 0.15 to demand score")
 
         # Factor 3: Team positions (if available)
         if match.away_position:
@@ -97,11 +168,6 @@ class DemandPredictor:
 
         # Clamp to valid range [0.0, 1.0]
         demand_score = max(0.0, min(1.0, demand_score))
-
-        logger.debug(
-            f"Predicted demand for match {match.id}, zone {zone.id}: {demand_score:.3f} "
-            f"(days_to_match={days_to_match}, occupancy={current_occupancy:.1f}%)"
-        )
 
         return demand_score
 
@@ -209,11 +275,49 @@ class DemandPredictor:
 
     def reload_model(self, model_path: Optional[str] = None) -> None:
         """
-        Reload ML model (placeholder for Phase 7).
+        Reload ML model from disk.
 
         Args:
-            model_path: Path to model file (not used in heuristic mode)
+            model_path: Path to model file. If None, uses self.model_path
         """
-        logger.info("reload_model called (no-op in heuristic mode)")
-        # This will be implemented in Phase 7 when we add ML models
-        pass
+        path = model_path or self.model_path
+
+        if not path:
+            logger.warning("No model path provided, cannot reload model")
+            return
+
+        if not Path(path).exists():
+            logger.error(f"Model file not found: {path}")
+            return
+
+        try:
+            from src.ml.models.demand_model import DemandModel
+            self.model = DemandModel()
+            self.model.load(path)
+            self.use_ml = True
+            self.model_path = path
+            logger.info(f"ML model reloaded from {path}")
+        except Exception as e:
+            logger.error(f"Failed to reload ML model: {e}")
+            self.model = None
+            self.use_ml = False
+
+    def get_model_info(self) -> dict:
+        """
+        Get information about the current model.
+
+        Returns:
+            Dictionary with model information
+        """
+        if self.use_ml and self.model:
+            info = self.model.get_model_info()
+            info['predictor_mode'] = 'ml'
+            info['model_path'] = self.model_path
+        else:
+            info = {
+                'predictor_mode': 'heuristic',
+                'model_path': None,
+                'is_trained': False,
+            }
+
+        return info
