@@ -363,3 +363,17 @@ metadata:
   last_updated: "2024-12-12"
   reviewed_by: "Revenue Management Team"
   notes: "Reglas iniciales basadas en análisis de mercado y competencia"
+
+# ============================================================================
+# FEATURE ENGINEERING
+# ============================================================================
+feature_engineering:
+  rival_position:
+    top_team_threshold: 4
+    bottom_team_threshold: 18
+  home_position:
+    top_team_threshold: 6
+    relegation_threshold: 15
+    europe_min: 4
+    europe_max: 7
+    normalization_factor: 20

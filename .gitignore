@@ -96,6 +96,7 @@ docker-compose.override.yml
 *.joblib
 *.model
 models/
+!src/ml/models/
 
 # Data files
 data/

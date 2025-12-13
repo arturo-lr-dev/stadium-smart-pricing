@@ -657,134 +657,137 @@
 
 ---
 
-## FASE 7: Machine Learning - Demand Prediction (MVP)
+## FASE 7: Machine Learning - Demand Prediction (MVP) ✅ COMPLETED
+
+**Status:** ✅ COMPLETED (2025-12-13)
+**Documentation:** See [PHASE_7_COMPLETION.md](PHASE_7_COMPLETION.md)
 
 ### Feature Engineering
 
 #### src/ml/features/match_features.py
-- [ ] Crear clase `MatchFeatureExtractor`
-- [ ] Implementar método `extract_competition_features(match: Match) -> Dict`
-  - [ ] One-hot encoding de competition type
-  - [ ] Importancia del partido (league position, etc.)
-  - [ ] Is derby flag
-- [ ] Implementar método `extract_rival_features(match: Match) -> Dict`
-  - [ ] Estadísticas históricas del rival
-  - [ ] Posición en liga del rival
-  - [ ] Racha reciente del rival
-- [ ] Implementar método `extract_home_team_features(match: Match) -> Dict`
-  - [ ] Posición en liga local
-  - [ ] Racha de resultados
-  - [ ] Goles a favor/contra
-- [ ] Implementar método `extract_all(match: Match) -> Dict`
+- [x] Crear clase `MatchFeatureExtractor`
+- [x] Implementar método `extract_competition_features(match: Match) -> Dict`
+  - [x] One-hot encoding de competition type
+  - [x] Importancia del partido (league position, etc.)
+  - [x] Is derby flag
+- [x] Implementar método `extract_rival_features(match: Match) -> Dict`
+  - [x] Estadísticas históricas del rival
+  - [x] Posición en liga del rival
+  - [x] Racha reciente del rival
+- [x] Implementar método `extract_home_team_features(match: Match) -> Dict`
+  - [x] Posición en liga local
+  - [x] Racha de resultados
+  - [x] Goles a favor/contra
+- [x] Implementar método `extract_all(match: Match) -> Dict`
 
 #### src/ml/features/temporal_features.py
-- [ ] Crear clase `TemporalFeatureExtractor`
-- [ ] Implementar método `extract_date_features(match_date: datetime) -> Dict`
-  - [ ] Day of week (0-6)
-  - [ ] Is weekend
-  - [ ] Is holiday
-  - [ ] Month
-  - [ ] Hour of day
-- [ ] Implementar método `extract_season_features(match_date: datetime) -> Dict`
-  - [ ] Season (2023/2024, etc.)
-  - [ ] Matchday number (jornada)
-- [ ] Implementar método `extract_all(match_date: datetime) -> Dict`
+- [x] Crear clase `TemporalFeatureExtractor`
+- [x] Implementar método `extract_date_features(match_date: datetime) -> Dict`
+  - [x] Day of week (0-6)
+  - [x] Is weekend
+  - [x] Is holiday
+  - [x] Month
+  - [x] Hour of day
+- [x] Implementar método `extract_season_features(match_date: datetime) -> Dict`
+  - [x] Season (2023/2024, etc.)
+  - [x] Matchday number (jornada)
+- [x] Implementar método `extract_all(match_date: datetime) -> Dict`
 
 #### src/ml/features/external_features.py
-- [ ] Crear clase `ExternalFeatureExtractor`
-- [ ] Implementar método `extract_weather_features(match: Match) -> Dict`
-  - [ ] Temperature (placeholder por ahora)
-  - [ ] Precipitation probability
-  - [ ] Wind speed
-- [ ] Implementar método `extract_transport_features(match: Match) -> Dict`
-  - [ ] Public transport availability
-  - [ ] Traffic conditions (placeholder)
-- [ ] Implementar método `extract_all(match: Match) -> Dict`
+- [x] Crear clase `ExternalFeatureExtractor`
+- [x] Implementar método `extract_weather_features(match: Match) -> Dict`
+  - [x] Temperature (placeholder por ahora)
+  - [x] Precipitation probability
+  - [x] Wind speed
+- [x] Implementar método `extract_transport_features(match: Match) -> Dict`
+  - [x] Public transport availability
+  - [x] Traffic conditions (placeholder)
+- [x] Implementar método `extract_all(match: Match) -> Dict`
 
 ### ML Model - Demand Predictor (Simple MVP)
 
 #### src/ml/models/base_model.py
-- [ ] Crear clase abstracta `BaseMLModel`
-- [ ] Definir método abstracto `train(X, y)`
-- [ ] Definir método abstracto `predict(X)`
-- [ ] Definir método abstracto `save(path: str)`
-- [ ] Definir método abstracto `load(path: str)`
-- [ ] Implementar método `evaluate(X, y) -> Dict[str, float]`
+- [x] Crear clase abstracta `BaseMLModel`
+- [x] Definir método abstracto `train(X, y)`
+- [x] Definir método abstracto `predict(X)`
+- [x] Definir método abstracto `save(path: str)`
+- [x] Definir método abstracto `load(path: str)`
+- [x] Implementar método `evaluate(X, y) -> Dict[str, float]`
 
 #### src/ml/models/demand_model.py
-- [ ] Crear clase `DemandModel(BaseMLModel)`
-- [ ] Usar RandomForestRegressor o XGBoost como base (configurable)
-- [ ] Implementar método `train(historical_sales: List[Sale], matches: List[Match])`
-  - [ ] Extraer features de matches
-  - [ ] Preparar target (% de ocupación o velocidad de venta)
-  - [ ] Split train/validation
-  - [ ] Entrenar modelo
-  - [ ] Evaluar en validation
-  - [ ] Guardar métricas
-- [ ] Implementar método `predict(match: Match, zone: Zone, days_to_match: int) -> float`
-  - [ ] Extraer features del match
-  - [ ] Añadir days_to_match como feature
-  - [ ] Predecir demand_score (0-1)
-  - [ ] Aplicar calibración si es necesario
-  - [ ] Retornar score
+- [x] Crear clase `DemandModel(BaseMLModel)`
+- [x] Usar RandomForestRegressor o XGBoost como base (configurable)
+- [x] Implementar método `train(historical_sales: List[Sale], matches: List[Match])`
+  - [x] Extraer features de matches
+  - [x] Preparar target (% de ocupación o velocidad de venta)
+  - [x] Split train/validation
+  - [x] Entrenar modelo
+  - [x] Evaluar en validation
+  - [x] Guardar métricas
+- [x] Implementar método `predict(match: Match, zone: Zone, days_to_match: int) -> float`
+  - [x] Extraer features del match
+  - [x] Añadir days_to_match como feature
+  - [x] Predecir demand_score (0-1)
+  - [x] Aplicar calibración si es necesario
+  - [x] Retornar score
 
 ### Training Pipeline
 
 #### src/ml/training/train_demand.py
-- [ ] Crear script de entrenamiento
-- [ ] Implementar función `load_training_data() -> tuple[List[Match], List[Sale]]`
-  - [ ] Cargar histórico de partidos
-  - [ ] Cargar histórico de ventas
-  - [ ] Filtrar datos incompletos
-- [ ] Implementar función `prepare_features_and_target(matches, sales) -> tuple[pd.DataFrame, pd.Series]`
-  - [ ] Combinar matches y sales
-  - [ ] Extraer todas las features
-  - [ ] Calcular target (occupancy rate a X días del partido)
-- [ ] Implementar función `train_model(X, y, config: Dict) -> DemandModel`
-  - [ ] Instanciar modelo
-  - [ ] Entrenar
-  - [ ] Evaluar
-  - [ ] Guardar
-- [ ] Implementar función `main()`
-- [ ] Añadir CLI con argparse
-- [ ] Ejecutar: `python src/ml/training/train_demand.py`
+- [x] Crear script de entrenamiento
+- [x] Implementar función `load_training_data() -> tuple[List[Match], List[Sale]]`
+  - [x] Cargar histórico de partidos
+  - [x] Cargar histórico de ventas
+  - [x] Filtrar datos incompletos
+- [x] Implementar función `prepare_features_and_target(matches, sales) -> tuple[pd.DataFrame, pd.Series]`
+  - [x] Combinar matches y sales
+  - [x] Extraer todas las features
+  - [x] Calcular target (occupancy rate a X días del partido)
+- [x] Implementar función `train_model(X, y, config: Dict) -> DemandModel`
+  - [x] Instanciar modelo
+  - [x] Entrenar
+  - [x] Evaluar
+  - [x] Guardar
+- [x] Implementar función `main()`
+- [x] Añadir CLI con argparse
+- [x] Ejecutar: `python src/ml/training/train_demand.py`
 
 ### Model Evaluation
 
 #### src/ml/training/evaluate.py
-- [ ] Crear script de evaluación
-- [ ] Implementar función `load_model(path: str) -> DemandModel`
-- [ ] Implementar función `load_test_data() -> tuple[pd.DataFrame, pd.Series]`
-- [ ] Implementar función `evaluate_model(model, X_test, y_test) -> Dict`
-  - [ ] Calcular MAE, RMSE, R²
-  - [ ] Generar gráficas de predicciones vs real
-  - [ ] Guardar métricas en archivo JSON
-- [ ] Implementar función `main()`
-- [ ] Ejecutar: `python src/ml/training/evaluate.py`
+- [x] Crear script de evaluación
+- [x] Implementar función `load_model(path: str) -> DemandModel`
+- [x] Implementar función `load_test_data() -> tuple[pd.DataFrame, pd.Series]`
+- [x] Implementar función `evaluate_model(model, X_test, y_test) -> Dict`
+  - [x] Calcular MAE, RMSE, R²
+  - [x] Generar gráficas de predicciones vs real
+  - [x] Guardar métricas en archivo JSON
+- [x] Implementar función `main()`
+- [x] Ejecutar: `python src/ml/training/evaluate.py`
 
 ### Demand Predictor Service
 
 #### src/domain/services/demand_predictor.py
-- [ ] Crear clase `DemandPredictor`
-- [ ] Cargar modelo entrenado en `__init__`
-- [ ] Implementar método `predict_demand(match: Match, zone: Zone, days_to_match: int) -> float`
-  - [ ] Extraer features
-  - [ ] Llamar a modelo ML
-  - [ ] Post-procesar predicción
-  - [ ] Aplicar límites (0-1)
-  - [ ] Retornar score
-- [ ] Implementar método `reload_model(path: str)`
-- [ ] Implementar fallback si modelo no disponible (usar heurística simple)
+- [x] Actualizar clase `DemandPredictor`
+- [x] Cargar modelo entrenado en `__init__`
+- [x] Implementar método `predict_demand(match: Match, zone: Zone, days_to_match: int) -> float`
+  - [x] Extraer features
+  - [x] Llamar a modelo ML
+  - [x] Post-procesar predicción
+  - [x] Aplicar límites (0-1)
+  - [x] Retornar score
+- [x] Implementar método `reload_model(path: str)`
+- [x] Implementar fallback si modelo no disponible (usar heurística simple)
 
 ### ML Tests
 
-- [ ] Crear `tests/unit/ml/test_feature_extractors.py`
-- [ ] Testear extracción de cada tipo de feature
-- [ ] Crear `tests/unit/ml/test_demand_model.py`
-- [ ] Testear entrenamiento con datos sintéticos
-- [ ] Testear predicción
-- [ ] Testear save/load de modelo
-- [ ] Ejecutar tests: `pytest tests/unit/ml/`
+- [x] Crear `tests/unit/ml/test_feature_extractors.py`
+- [x] Testear extracción de cada tipo de feature
+- [x] Crear `tests/unit/ml/test_demand_model.py`
+- [x] Testear entrenamiento con datos sintéticos
+- [x] Testear predicción
+- [x] Testear save/load de modelo
+- [x] Ejecutar tests: `pytest tests/unit/ml/` (32 tests passed)
 
 ---
 
