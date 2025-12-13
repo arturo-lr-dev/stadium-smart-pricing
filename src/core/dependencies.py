@@ -183,37 +183,50 @@ def get_rules_engine():
     Dependency para obtener el RulesEngine.
 
     Returns:
-        Instancia de RulesEngine (a implementar en Fase 4)
+        Instancia de RulesEngine
 
-    Note:
-        Por ahora retorna None, se implementará en la Fase 4
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/rules/competition")
+        >>> def get_multiplier(engine = Depends(get_rules_engine)):
+        >>>     return engine.get_competition_multiplier("la_liga")
     """
-    # TODO: Implementar en Fase 4
-    # from src.domain.services.rules_engine import RulesEngine
-    # settings = get_settings()
-    # return RulesEngine(config_path=settings.config_pricing_rules_path)
-    return None
+    from src.domain.services.rules_engine import RulesEngine
+
+    return RulesEngine(config_path="config/pricing_rules.yaml")
 
 
-@lru_cache()
-def get_pricing_engine():
+def get_pricing_engine(db: Session = None):
     """
     Dependency para obtener el PricingEngine.
 
-    Returns:
-        Instancia de PricingEngine (a implementar en Fase 6)
+    Args:
+        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
 
-    Note:
-        Por ahora retorna None, se implementará en la Fase 6
+    Returns:
+        Instancia de PricingEngine
+
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/pricing/calculate/{match_id}")
+        >>> def calculate_pricing(match_id: str, engine = Depends(get_pricing_engine)):
+        >>>     return engine.calculate_match_pricing(match, zones)
     """
-    # TODO: Implementar en Fase 6
-    # from src.domain.services.pricing_engine import PricingEngine
-    # return PricingEngine(
-    #     rules_engine=get_rules_engine(),
-    #     demand_predictor=get_demand_predictor(),
-    #     inventory_manager=get_inventory_manager(),
-    # )
-    return None
+    from src.domain.services.pricing_engine import PricingEngine
+
+    if db is None:
+        # Para uso directo (no como dependency de FastAPI)
+        db = next(get_db())
+
+    return PricingEngine(
+        rules_engine=get_rules_engine(),
+        demand_predictor=get_demand_predictor(),
+        inventory_manager=get_inventory_manager(db),
+        match_repository=get_match_repository(db),
+        zone_repository=get_zone_repository(db),
+        pricing_repository=get_pricing_repository(db),
+        db_session=db,
+    )
 
 
 @lru_cache()
@@ -222,16 +235,21 @@ def get_demand_predictor():
     Dependency para obtener el DemandPredictor.
 
     Returns:
-        Instancia de DemandPredictor (a implementar en Fase 7)
+        Instancia de DemandPredictor
 
     Note:
-        Por ahora retorna None, se implementará en la Fase 7
+        Currently uses heuristic-based predictor. Full ML implementation
+        will be added in Phase 7.
+
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/demand/predict")
+        >>> def predict(predictor = Depends(get_demand_predictor)):
+        >>>     return predictor.predict_demand(match, zone, days=7)
     """
-    # TODO: Implementar en Fase 7
-    # from src.domain.services.demand_predictor import DemandPredictor
-    # settings = get_settings()
-    # return DemandPredictor(model_path=settings.ml.model_path)
-    return None
+    from src.domain.services.demand_predictor import DemandPredictor
+
+    return DemandPredictor()
 
 
 def get_inventory_manager(db: Session = None):

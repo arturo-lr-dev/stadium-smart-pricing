@@ -571,86 +571,89 @@
 
 ---
 
-## FASE 6: Business Logic - Pricing Engine
+## FASE 6: Business Logic - Pricing Engine ✅ COMPLETED
+
+**Status:** ✅ COMPLETED (2025-12-13)
+**Documentation:** See [PHASE_6_COMPLETION.md](PHASE_6_COMPLETION.md)
 
 ### Pricing Engine Core
 
 #### src/domain/services/pricing_engine.py
-- [ ] Crear clase `PricingEngine`
-- [ ] Inyectar `RulesEngine`
-- [ ] Inyectar `DemandPredictor`
-- [ ] Inyectar `InventoryManager`
-- [ ] Inyectar `MatchRepository` y `ZoneRepository`
+- [x] Crear clase `PricingEngine`
+- [x] Inyectar `RulesEngine`
+- [x] Inyectar `DemandPredictor`
+- [x] Inyectar `InventoryManager`
+- [x] Inyectar `MatchRepository` y `ZoneRepository`
 
 ### Main Pricing Method
 
-- [ ] Implementar método `calculate_match_pricing(match: Match, zones: List[Zone], current_datetime: Optional[datetime]) -> MatchPricing`
-  - [ ] Iterar sobre todas las zonas
-  - [ ] Llamar a `_calculate_zone_price` para cada zona
-  - [ ] Agregar métricas totales
-  - [ ] Calcular precio promedio
-  - [ ] Retornar `MatchPricing` completo
-- [ ] Añadir logging detallado de cada cálculo
-- [ ] Añadir métricas Prometheus
+- [x] Implementar método `calculate_match_pricing(match: Match, zones: List[Zone], current_datetime: Optional[datetime]) -> MatchPricing`
+  - [x] Iterar sobre todas las zonas
+  - [x] Llamar a `_calculate_zone_price` para cada zona
+  - [x] Agregar métricas totales
+  - [x] Calcular precio promedio
+  - [x] Retornar `MatchPricing` completo
+- [x] Añadir logging detallado de cada cálculo
+- [ ] Añadir métricas Prometheus (deferred to Phase 12)
 
 ### Zone Pricing Calculation
 
-- [ ] Implementar método `_calculate_zone_price(match: Match, zone: Zone, current_datetime: datetime) -> ZonePricing`
-  - [ ] Calcular todos los factores (`_calculate_pricing_factors`)
-  - [ ] Obtener precio base de la zona
-  - [ ] Aplicar multiplicador de zona
-  - [ ] Aplicar todos los factores calculados
-  - [ ] Validar límites de precio con `zone.validate_price()`
-  - [ ] Obtener inventario actual
-  - [ ] Construir y retornar `ZonePricing`
+- [x] Implementar método `_calculate_zone_price(match: Match, zone: Zone, current_datetime: datetime) -> ZonePricing`
+  - [x] Calcular todos los factores (`_calculate_pricing_factors`)
+  - [x] Obtener precio base de la zona
+  - [x] Aplicar multiplicador de zona
+  - [x] Aplicar todos los factores calculados
+  - [x] Validar límites de precio con `zone.validate_price()`
+  - [x] Obtener inventario actual
+  - [x] Construir y retornar `ZonePricing`
 
 ### Pricing Factors Calculation
 
-- [ ] Implementar método `_calculate_pricing_factors(match: Match, zone: Zone, current_datetime: datetime) -> PricingFactors`
-  - [ ] Calcular días hasta el partido
-  - [ ] Obtener demand_score del ML model
-  - [ ] Obtener time_factor del RulesEngine
-  - [ ] Calcular occupancy y obtener inventory_factor
-  - [ ] Obtener competition_factor del RulesEngine
-  - [ ] Aplicar rival_multiplier
-  - [ ] Aplicar special conditions (derby, holiday, etc.)
-  - [ ] Obtener weather_factor (integración futura)
-  - [ ] Construir y retornar `PricingFactors`
+- [x] Implementar método `_calculate_pricing_factors(match: Match, zone: Zone, current_datetime: datetime) -> PricingFactors`
+  - [x] Calcular días hasta el partido
+  - [x] Obtener demand_score del ML model
+  - [x] Obtener time_factor del RulesEngine
+  - [x] Calcular occupancy y obtener inventory_factor
+  - [x] Obtener competition_factor del RulesEngine
+  - [x] Aplicar rival_multiplier
+  - [x] Aplicar special conditions (derby, holiday, etc.)
+  - [x] Obtener weather_factor (integración futura - placeholder)
+  - [x] Construir y retornar `PricingFactors`
 
 ### Price Change Decision
 
-- [ ] Implementar método `should_update_price(match_id: str, zone_id: str, current_price: float, new_price: float) -> tuple[bool, str]`
-  - [ ] Consultar cuántos cambios se han hecho hoy
-  - [ ] Validar con RulesEngine
-  - [ ] Calcular diferencia de precio
-  - [ ] Validar umbral mínimo de cambio (evitar cambios triviales)
-  - [ ] Retornar decisión y razón
+- [x] Implementar método `should_update_price(match_id: str, zone_id: str, current_price: float, new_price: float) -> tuple[bool, str]`
+  - [x] Consultar cuántos cambios se han hecho hoy
+  - [x] Validar con RulesEngine
+  - [x] Calcular diferencia de precio
+  - [x] Validar umbral mínimo de cambio (evitar cambios triviales)
+  - [x] Retornar decisión y razón
 
 ### Batch Pricing
 
-- [ ] Implementar método `calculate_all_upcoming_matches(days: int = 30) -> List[MatchPricing]`
-  - [ ] Obtener partidos próximos
-  - [ ] Calcular pricing para cada uno
-  - [ ] Manejar errores individualmente (no fallar todo si uno falla)
-  - [ ] Retornar lista de pricings
+- [x] Implementar método `calculate_all_upcoming_matches(days: int = 30) -> List[MatchPricing]`
+  - [x] Obtener partidos próximos
+  - [x] Calcular pricing para cada uno
+  - [x] Manejar errores individualmente (no fallar todo si uno falla)
+  - [x] Retornar lista de pricings
 
 ### Price History
 
-- [ ] Implementar método `save_pricing_to_history(pricing: MatchPricing)`
-  - [ ] Iterar sobre zonas
-  - [ ] Guardar en PricingHistoryDB
-  - [ ] Commit transacción
+- [x] Implementar método `save_pricing_to_history(pricing: MatchPricing)`
+  - [x] Iterar sobre zonas
+  - [x] Guardar en PricingHistoryDB
+  - [x] Commit transacción
 
 ### Pricing Engine Tests
 
-- [ ] Crear `tests/unit/services/test_pricing_engine.py`
-- [ ] Testear cálculo completo de pricing
-- [ ] Testear cálculo de factores individuales
-- [ ] Testear validación de límites de precio
-- [ ] Testear decisión de cambio de precio
-- [ ] Testear casos edge (partido pasado, sin inventario, etc.)
-- [ ] Mockear dependencias (RulesEngine, DemandPredictor, etc.)
-- [ ] Ejecutar tests: `pytest tests/unit/services/test_pricing_engine.py`
+- [x] Crear `tests/unit/services/test_pricing_engine.py`
+- [x] Testear cálculo completo de pricing
+- [x] Testear cálculo de factores individuales
+- [x] Testear validación de límites de precio
+- [x] Testear decisión de cambio de precio
+- [x] Testear casos edge (partido pasado, sin inventario, etc.)
+- [x] Mockear dependencias (RulesEngine, DemandPredictor, etc.)
+- [x] Ejecutar tests: `pytest tests/unit/services/test_pricing_engine.py` (26/26 passed)
 
 ---
 
