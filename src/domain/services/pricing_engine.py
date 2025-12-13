@@ -152,6 +152,7 @@ class PricingEngine:
         match: Match,
         zone: Zone,
         current_datetime: datetime,
+        override_occupancy: Optional[Tuple[int, int]] = None,
     ) -> ZonePricing:
         """
         Calculate pricing for a specific zone.
@@ -160,14 +161,19 @@ class PricingEngine:
             match: Match object
             zone: Zone object
             current_datetime: Current datetime
+            override_occupancy: Optional tuple of (sold_tickets, available_tickets)
+                               for simulation scenarios. If None, uses actual inventory.
 
         Returns:
             ZonePricing object with calculated price and factors
         """
         # Get inventory data
-        sold_tickets, available_tickets = self.inventory_manager.get_zone_inventory(
-            match.id, zone.id
-        )
+        if override_occupancy is not None:
+            sold_tickets, available_tickets = override_occupancy
+        else:
+            sold_tickets, available_tickets = self.inventory_manager.get_zone_inventory(
+                match.id, zone.id
+            )
         occupancy_percent = (sold_tickets / zone.capacity) if zone.capacity > 0 else 0.0
 
         # Calculate all pricing factors

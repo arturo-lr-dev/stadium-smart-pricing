@@ -216,7 +216,7 @@ def create_app(settings: Settings = None) -> FastAPI:
             content=create_error_response(
                 code="SMART_PRICING_ERROR",
                 message=str(exc),
-            ).model_dump(),
+            ).model_dump(mode='json'),
         )
 
     @app.exception_handler(DatabaseError)
@@ -234,7 +234,7 @@ def create_app(settings: Settings = None) -> FastAPI:
                 code="DATABASE_ERROR",
                 message="Database service unavailable",
                 details={"error": str(exc)},
-            ).model_dump(),
+            ).model_dump(mode='json'),
         )
 
     @app.exception_handler(ConfigurationError)
@@ -252,7 +252,7 @@ def create_app(settings: Settings = None) -> FastAPI:
                 code="CONFIGURATION_ERROR",
                 message="Configuration error",
                 details={"error": str(exc)},
-            ).model_dump(),
+            ).model_dump(mode='json'),
         )
 
     @app.exception_handler(PricingError)
@@ -270,7 +270,7 @@ def create_app(settings: Settings = None) -> FastAPI:
                 code="PRICING_ERROR",
                 message="Pricing calculation error",
                 details={"error": str(exc)},
-            ).model_dump(),
+            ).model_dump(mode='json'),
         )
 
     @app.exception_handler(Exception)
@@ -288,7 +288,7 @@ def create_app(settings: Settings = None) -> FastAPI:
             content=create_error_response(
                 code="INTERNAL_ERROR",
                 message="Internal server error",
-            ).model_dump(),
+            ).model_dump(mode='json'),
         )
 
     # Root endpoint
@@ -430,12 +430,13 @@ def create_app(settings: Settings = None) -> FastAPI:
         }
 
     # Include routers
-    from src.api import admin, analytics, pricing, simulator
+    from src.api import admin, analytics, pricing, sales_simulator, simulator
 
     app.include_router(pricing.router, prefix="/api/v1", tags=["Pricing"])
     app.include_router(admin.router, prefix="/api/v1", tags=["Admin"])
     app.include_router(analytics.router, prefix="/api/v1", tags=["Analytics"])
     app.include_router(simulator.router, prefix="/api/v1", tags=["Simulator"])
+    app.include_router(sales_simulator.router, prefix="/api/v1", tags=["Sales Simulator"])
 
     # Mount static files for dashboard
     try:
