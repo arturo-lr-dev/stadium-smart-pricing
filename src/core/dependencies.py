@@ -234,25 +234,41 @@ def get_demand_predictor():
     return None
 
 
-@lru_cache()
-def get_inventory_manager():
+def get_inventory_manager(db: Session = None):
     """
     Dependency para obtener el InventoryManager.
 
-    Returns:
-        Instancia de InventoryManager (a implementar en Fase 5)
+    Args:
+        db: Sesión de base de datos (opcional, se crea una si no se proporciona)
 
-    Note:
-        Por ahora retorna None, se implementará en la Fase 5
+    Returns:
+        Instancia de InventoryManager
+
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/inventory")
+        >>> def get_inventory(manager = Depends(get_inventory_manager)):
+        >>>     return manager.get_match_inventory("match_123")
     """
-    # TODO: Implementar en Fase 5
-    # from src.domain.services.inventory_manager import InventoryManager
-    # return InventoryManager(
-    #     sale_repository=...,
-    #     zone_repository=...,
-    #     redis_client=get_redis_client(),
-    # )
-    return None
+    from src.domain.services.inventory_manager import InventoryManager
+
+    if db is None:
+        # Para uso directo (no como dependency de FastAPI)
+        db = next(get_db())
+
+    sale_repo = get_sale_repository(db)
+    zone_repo = get_zone_repository(db)
+    redis_client = get_redis_client()
+
+    settings = get_settings()
+    cache_ttl = settings.redis.ttl
+
+    return InventoryManager(
+        sale_repository=sale_repo,
+        zone_repository=zone_repo,
+        redis_client=redis_client,
+        cache_ttl=cache_ttl,
+    )
 
 
 # ============================================================================
