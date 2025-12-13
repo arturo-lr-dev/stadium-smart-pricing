@@ -45,7 +45,7 @@ def load_training_data() -> Tuple[List[Match], List[Zone], pd.DataFrame]:
             home_team=m.home_team,
             away_team=m.away_team,
             competition=m.competition,
-            date=m.match_date,
+            match_date=m.match_date,
             venue=m.venue,
             capacity=m.capacity,
             is_derby=m.is_derby,
@@ -73,14 +73,14 @@ def load_training_data() -> Tuple[List[Match], List[Zone], pd.DataFrame]:
             SELECT
                 s.match_id,
                 s.zone_id,
-                s.purchase_datetime,
+                DATE(s.purchase_datetime) as purchase_datetime,
                 COUNT(*) as num_sales,
                 SUM(s.quantity) as total_quantity
             FROM sales s
             INNER JOIN matches m ON s.match_id = m.id
-            WHERE s.payment_status = 'completed'
+            WHERE s.payment_status = 'COMPLETED'::paymentstatus
             GROUP BY s.match_id, s.zone_id, DATE(s.purchase_datetime)
-            ORDER BY s.purchase_datetime
+            ORDER BY purchase_datetime
         """
         sales_df = pd.read_sql(sales_query, db.bind)
 
@@ -127,6 +127,7 @@ def prepare_features_and_target(
         # Skip future matches (no sales data yet)
         if match.date > datetime.now():
             continue
+
 
         for zone in zones:
             # Get sales for this match-zone combination
