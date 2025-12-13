@@ -212,7 +212,7 @@ def setup_logging() -> None:
         "Logging system initialized",
         environment=settings.environment,
         format=settings.logging.format,
-        level=settings.logging.level,
+        log_level=settings.logging.level,
     )
 
 

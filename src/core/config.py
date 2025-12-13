@@ -68,7 +68,7 @@ class LoggingSettings(BaseSettings):
     """Configuración de logging."""
 
     level: str = Field(default="INFO", alias="LOG_LEVEL")
-    format: str = Field(default="json", alias="LOG_FORMAT")
+    format: str = Field(default="text", alias="LOG_FORMAT")
     file: Optional[str] = Field(default=None, alias="LOG_FILE")
 
     @field_validator("level")
