@@ -434,134 +434,140 @@
 
 ---
 
-## FASE 4: Business Logic - Rules Engine
+## FASE 4: Business Logic - Rules Engine ✅ COMPLETED
+
+**Status:** ✅ COMPLETED (2025-12-13)
+**Documentation:** See [PHASE_4_COMPLETION.md](PHASE_4_COMPLETION.md)
 
 ### Rules Engine Core
 
 #### src/domain/services/rules_engine.py
-- [ ] Crear clase `RulesEngine`
-- [ ] Implementar `__init__(config_path: str)`
-- [ ] Implementar método privado `_load_rules(path: str) -> Dict`
-- [ ] Implementar método `reload_rules()` para hot-reload
-- [ ] Implementar validación de reglas al cargar
+- [x] Crear clase `RulesEngine`
+- [x] Implementar `__init__(config_path: str)`
+- [x] Implementar método privado `_load_rules(path: str) -> Dict`
+- [x] Implementar método `reload_rules()` para hot-reload
+- [x] Implementar validación de reglas al cargar
 
 ### Competition Rules
 
-- [ ] Implementar método `get_competition_multiplier(competition: str) -> float`
-- [ ] Añadir fallback a valor default si competición no existe
-- [ ] Añadir logging de multiplicador aplicado
+- [x] Implementar método `get_competition_multiplier(competition: str) -> float`
+- [x] Añadir fallback a valor default si competición no existe
+- [x] Añadir logging de multiplicador aplicado
 
 ### Rival Rules
 
-- [ ] Implementar método `get_rival_multiplier(rival_team: str) -> float`
-- [ ] Implementar lógica para equipos en zona de descenso
-- [ ] Añadir cache de multiplicadores por rival
-- [ ] Añadir fallback a valor default
+- [x] Implementar método `get_rival_multiplier(rival_team: str) -> float`
+- [x] Implementar lógica para equipos en zona de descenso
+- [x] Añadir cache de multiplicadores por rival
+- [x] Añadir fallback a valor default
 
 ### Time Decay Rules
 
-- [ ] Implementar método `get_time_decay_factor(days_to_match: int) -> float`
-- [ ] Iterar sobre reglas ordenadas por min_days
-- [ ] Retornar multiplicador correspondiente
-- [ ] Añadir logging del factor aplicado
+- [x] Implementar método `get_time_decay_factor(days_to_match: int) -> float`
+- [x] Iterar sobre reglas ordenadas por min_days
+- [x] Retornar multiplicador correspondiente
+- [x] Añadir logging del factor aplicado
 
 ### Inventory Pressure Rules
 
-- [ ] Implementar método `get_inventory_pressure_factor(occupancy_percent: float) -> float`
-- [ ] Iterar sobre umbrales de ocupación
-- [ ] Retornar multiplicador correspondiente
-- [ ] Añadir lógica para promociones en baja ocupación
+- [x] Implementar método `get_inventory_pressure_factor(occupancy_percent: float) -> float`
+- [x] Iterar sobre umbrales de ocupación
+- [x] Retornar multiplicador correspondiente
+- [x] Añadir lógica para promociones en baja ocupación
 
 ### Special Conditions
 
-- [ ] Implementar método `get_special_multipliers(match: Match) -> Dict[str, float]`
-- [ ] Calcular holiday_multiplier si es festivo
-- [ ] Calcular weekend_multiplier si es fin de semana
-- [ ] Calcular derby_multiplier si es derby
-- [ ] Retornar diccionario con todos los multiplicadores aplicables
+- [x] Implementar método `get_special_multipliers(match: Match) -> Dict[str, float]`
+- [x] Calcular holiday_multiplier si es festivo
+- [x] Calcular weekend_multiplier si es fin de semana
+- [x] Calcular derby_multiplier si es derby
+- [x] Retornar diccionario con todos los multiplicadores aplicables
 
 ### Price Change Validation
 
-- [ ] Implementar método `is_price_change_allowed(current: float, new: float, changes_today: int) -> tuple[bool, str]`
-- [ ] Validar límite diario de cambios
-- [ ] Validar porcentaje de cambio máximo
-- [ ] Validar horas mínimas entre cambios
-- [ ] Validar blackout period antes del partido
-- [ ] Retornar (bool, mensaje_explicativo)
+- [x] Implementar método `is_price_change_allowed(current: float, new: float, changes_today: int) -> tuple[bool, str]`
+- [x] Validar límite diario de cambios
+- [x] Validar porcentaje de cambio máximo
+- [x] Validar horas mínimas entre cambios
+- [x] Validar blackout period antes del partido
+- [x] Retornar (bool, mensaje_explicativo)
 
 ### Price Change Tracking
 
-- [ ] Implementar método `record_price_change(match_id: str, zone_id: str)`
-- [ ] Guardar timestamp del cambio en Redis
-- [ ] Implementar contador de cambios diarios por zona
-- [ ] Limpiar cambios antiguos (> 24 horas)
+- [x] Implementar método `record_price_change(match_id: str, zone_id: str)`
+- [x] Guardar timestamp del cambio en Redis
+- [x] Implementar contador de cambios diarios por zona
+- [x] Limpiar cambios antiguos (> 24 horas)
 
 ### Rules Engine Tests
 
-- [ ] Crear `tests/unit/services/test_rules_engine.py`
-- [ ] Testear carga de configuración
-- [ ] Testear cada método de multiplicadores
-- [ ] Testear validación de cambios de precio
-- [ ] Testear casos edge (valores negativos, None, etc.)
-- [ ] Testear hot-reload de configuración
-- [ ] Ejecutar tests: `pytest tests/unit/services/test_rules_engine.py`
+- [x] Crear `tests/unit/services/test_rules_engine.py`
+- [x] Testear carga de configuración
+- [x] Testear cada método de multiplicadores
+- [x] Testear validación de cambios de precio
+- [x] Testear casos edge (valores negativos, None, etc.)
+- [x] Testear hot-reload de configuración
+- [x] Ejecutar tests: `pytest tests/unit/services/test_rules_engine.py`
 
 ---
 
-## FASE 5: Business Logic - Inventory Manager
+## FASE 5: Business Logic - Inventory Manager ✅ COMPLETED
+
+**Status:** ✅ COMPLETED (2025-12-13)
+**Documentation:** See [PHASE_5_COMPLETION.md](PHASE_5_COMPLETION.md)
 
 ### Inventory Manager Core
 
 #### src/domain/services/inventory_manager.py
-- [ ] Crear clase `InventoryManager`
-- [ ] Inyectar `SaleRepository` y `ZoneRepository`
-- [ ] Inyectar cliente Redis para cache
+- [x] Crear clase `InventoryManager`
+- [x] Inyectar `SaleRepository` y `ZoneRepository`
+- [x] Inyectar cliente Redis para cache
 
 ### Inventory Queries
 
-- [ ] Implementar método `get_zone_inventory(match_id: str, zone_id: str) -> tuple[int, int]`
-  - [ ] Consultar ventas totales desde DB
-  - [ ] Obtener capacidad de zona
-  - [ ] Calcular disponibles
-  - [ ] Retornar (vendidos, disponibles)
-- [ ] Implementar cache en Redis con TTL de 5 minutos
-- [ ] Implementar método `get_match_inventory(match_id: str) -> Dict[str, tuple[int, int]]`
-- [ ] Implementar método `get_total_occupancy(match_id: str) -> float`
+- [x] Implementar método `get_zone_inventory(match_id: str, zone_id: str) -> tuple[int, int]`
+  - [x] Consultar ventas totales desde DB
+  - [x] Obtener capacidad de zona
+  - [x] Calcular disponibles
+  - [x] Retornar (vendidos, disponibles)
+- [x] Implementar cache en Redis con TTL de 5 minutos
+- [x] Implementar método `get_match_inventory(match_id: str) -> Dict[str, tuple[int, int]]`
+- [x] Implementar método `get_total_occupancy(match_id: str) -> float`
 
 ### Sales Velocity
 
-- [ ] Implementar método `get_sales_velocity(match_id: str, zone_id: str, hours: int = 24) -> float`
-  - [ ] Consultar ventas en últimas N horas
-  - [ ] Calcular tickets vendidos por hora
-  - [ ] Retornar velocidad
-- [ ] Implementar método `predict_sellout_time(match_id: str, zone_id: str) -> Optional[datetime]`
-  - [ ] Usar velocidad de venta actual
-  - [ ] Calcular tickets restantes
-  - [ ] Proyectar fecha de agotamiento
+- [x] Implementar método `get_sales_velocity(match_id: str, zone_id: str, hours: int = 24) -> float`
+  - [x] Consultar ventas en últimas N horas
+  - [x] Calcular tickets vendidos por hora
+  - [x] Retornar velocidad
+- [x] Implementar método `predict_sellout_time(match_id: str, zone_id: str) -> Optional[datetime]`
+  - [x] Usar velocidad de venta actual
+  - [x] Calcular tickets restantes
+  - [x] Proyectar fecha de agotamiento
 
 ### Inventory Alerts
 
-- [ ] Implementar método `check_inventory_alerts(match_id: str) -> List[Dict]`
-  - [ ] Detectar zonas con > 90% ocupación
-  - [ ] Detectar zonas con < 20% ocupación cerca del partido
-  - [ ] Detectar cambios bruscos en velocidad de venta
-  - [ ] Retornar lista de alertas
+- [x] Implementar método `check_inventory_alerts(match_id: str) -> List[Dict]`
+  - [x] Detectar zonas con > 90% ocupación
+  - [x] Detectar zonas con < 20% ocupación cerca del partido
+  - [x] Detectar cambios bruscos en velocidad de venta
+  - [x] Retornar lista de alertas
 
 ### Cache Management
 
-- [ ] Implementar método `invalidate_cache(match_id: str, zone_id: Optional[str] = None)`
-- [ ] Implementar método `warm_cache(match_ids: List[str])`
-- [ ] Implementar limpieza automática de cache expirado
+- [x] Implementar método `invalidate_cache(match_id: str, zone_id: Optional[str] = None)`
+- [x] Implementar método `warm_cache(match_ids: List[str])`
+- [x] Implementar limpieza automática de cache expirado
 
 ### Inventory Manager Tests
 
-- [ ] Crear `tests/unit/services/test_inventory_manager.py`
-- [ ] Testear cálculos de inventario
-- [ ] Testear cálculos de velocidad de venta
-- [ ] Testear predicciones
-- [ ] Testear cache (mock Redis)
-- [ ] Testear alertas
-- [ ] Ejecutar tests: `pytest tests/unit/services/test_inventory_manager.py`
+- [x] Crear `tests/unit/services/test_inventory_manager.py`
+- [x] Testear cálculos de inventario
+- [x] Testear cálculos de velocidad de venta
+- [x] Testear predicciones
+- [x] Testear cache (mock Redis)
+- [x] Testear alertas
+- [x] Ejecutar tests: `pytest tests/unit/services/test_inventory_manager.py`
 
 ---
 
