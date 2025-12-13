@@ -20,8 +20,8 @@ def sample_match():
         id="match-1",
         home_team="RCD Mallorca",
         away_team="Real Madrid",
-        competition=CompetitionType.LALIGA,
-        date=datetime(2024, 3, 15, 20, 0, 0),
+        competition=CompetitionType.LA_LIGA,
+        match_date=datetime(2024, 3, 15, 20, 0, 0),
         venue="Son Moix",
         capacity=23000,
         is_derby=False,
@@ -59,7 +59,7 @@ class TestMatchFeatureExtractor:
         assert features["competition_champions"] is False
         assert features["is_derby"] is False
         assert "match_importance" in features
-        assert 0 <= features["match_importance"] <= 1
+        assert 0 <= features["match_importance"] <= 1.0
 
     def test_extract_competition_features_derby(self, sample_match):
         """Test that derby increases match importance."""

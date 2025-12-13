@@ -47,22 +47,22 @@ class MatchFeatureExtractor:
             - match_importance: float (0-1, higher for more important competitions)
         """
         features = {
-            "competition_laliga": match.competition == CompetitionType.LALIGA,
+            "competition_laliga": match.competition == CompetitionType.LA_LIGA,
             "competition_copa": match.competition == CompetitionType.COPA_DEL_REY,
             "competition_champions": match.competition == CompetitionType.CHAMPIONS_LEAGUE,
             "competition_friendly": match.competition == CompetitionType.FRIENDLY,
             "competition_europa": match.competition == CompetitionType.EUROPA_LEAGUE,
-            "competition_playoff": match.competition == CompetitionType.PLAYOFF,
+            "competition_supercup": match.competition == CompetitionType.SUPER_CUP,
             "is_derby": match.is_derby,
         }
 
         # Calculate match importance based on competition
         importance_map = {
             CompetitionType.CHAMPIONS_LEAGUE: 1.0,
-            CompetitionType.LALIGA: 0.9,
+            CompetitionType.LA_LIGA: 0.9,
             CompetitionType.COPA_DEL_REY: 0.7,
             CompetitionType.EUROPA_LEAGUE: 0.8,
-            CompetitionType.PLAYOFF: 0.95,
+            CompetitionType.SUPER_CUP: 0.85,
             CompetitionType.FRIENDLY: 0.3,
         }
         features["match_importance"] = importance_map.get(match.competition, 0.5)
