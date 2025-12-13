@@ -115,6 +115,8 @@ alembic/versions/*.pyc
 
 # Reports
 *.html
+!dashboard/simulator.html
+!dashboard/index.html
 reports/
 
 # Claude
