@@ -1,0 +1,85 @@
+services:
+  # FastAPI Application
+  - type: web
+    name: smart-pricing-api
+    env: python
+    region: frankfurt  # or oregon, singapore, etc.
+    plan: free  # or starter ($7/month)
+    buildCommand: |
+      pip install -r requirements.txt
+      chmod +x scripts/deploy_init.sh
+      ./scripts/deploy_init.sh
+    startCommand: "uvicorn src.api.main:app --host 0.0.0.0 --port $PORT --workers 2"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.10"
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FORMAT
+        value: json
+
+      # Database (auto-filled by Render from database service)
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: smart-pricing-db
+          property: host
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: smart-pricing-db
+          property: port
+      - key: DATABASE_NAME
+        fromDatabase:
+          name: smart-pricing-db
+          property: database
+      - key: DATABASE_USER
+        fromDatabase:
+          name: smart-pricing-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: smart-pricing-db
+          property: password
+
+      # Redis (auto-filled by Render from Redis service)
+      - key: REDIS_HOST
+        fromService:
+          name: smart-pricing-redis
+          type: redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          name: smart-pricing-redis
+          type: redis
+          property: port
+
+      # Optional: Force model retraining on deploy
+      - key: FORCE_RETRAIN
+        value: "false"  # Set to "true" to force retrain on each deploy
+
+      # API Keys (set these in Render dashboard)
+      - key: FOOTBALL_DATA_API_KEY
+        sync: false  # Manually set in dashboard
+      - key: WEATHER_API_KEY
+        sync: false  # Manually set in dashboard
+
+      # Security
+      - key: SECRET_KEY
+        generateValue: true  # Render generates random secret
+
+      # CORS
+      - key: CORS_ORIGINS
+        value: "*"  # Update with your frontend domain
+
+databases:
+  # PostgreSQL Database
+  - name: smart-pricing-db
+    databaseName: smart_pricing
+    user: smart_pricing_user
+    plan: free  # 90 days retention, or starter ($7/month)
+    ipAllowList: []  # Empty = allow all
+
+# Redis is created as a separate service (not in YAML, create via Render dashboard)
+# Or you can use an external Redis provider like Upstash (has free tier)
