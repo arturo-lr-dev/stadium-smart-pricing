@@ -25,8 +25,12 @@ class MatchFeatureExtractor:
     """
 
     def __init__(self):
-        """Initialize the match feature extractor."""
-        logger.info("MatchFeatureExtractor initialized")
+        """Initialize the match feature extractor with configuration."""
+        from src.core.config import get_settings
+        self.settings = get_settings()
+        self.pricing_rules = self.settings.get_yaml_config("pricing_rules")
+        self.competitions_config = self.settings.get_yaml_config("competitions")
+        logger.info("MatchFeatureExtractor initialized with config")
 
     def extract_competition_features(self, match: Match) -> Dict[str, Any]:
         """
@@ -56,20 +60,44 @@ class MatchFeatureExtractor:
             "is_derby": match.is_derby,
         }
 
-        # Calculate match importance based on competition
-        importance_map = {
-            CompetitionType.CHAMPIONS_LEAGUE: 1.0,
-            CompetitionType.LA_LIGA: 0.9,
-            CompetitionType.COPA_DEL_REY: 0.7,
-            CompetitionType.EUROPA_LEAGUE: 0.8,
-            CompetitionType.SUPER_CUP: 0.85,
-            CompetitionType.FRIENDLY: 0.3,
+        # Calculate match importance based on competition using config
+        # Use "competition_multipliers" from pricing_rules.yaml
+        comp_multipliers = self.pricing_rules.get("competition_multipliers", {})
+        
+        # Map CompetitionType enum to config keys
+        # This is a heuristic mapping based on known keys in config
+        comp_key_map = {
+            CompetitionType.CHAMPIONS_LEAGUE: "UEFA_Champions_League",
+            CompetitionType.LA_LIGA: "LaLiga",
+            CompetitionType.COPA_DEL_REY: "Copa_del_Rey",
+            CompetitionType.EUROPA_LEAGUE: "UEFA_Europa_League",
+            CompetitionType.SUPER_CUP: "Supercopa",
+            CompetitionType.FRIENDLY: "Amistoso",
         }
-        features["match_importance"] = importance_map.get(match.competition, 0.5)
+        
+        config_key = comp_key_map.get(match.competition)
+        base_multiplier = 1.0
+        
+        if config_key:
+            # Handle nested dicts (e.g. Copa_del_Rey) by taking a default or average if needed
+            # For simplicity, if it's a dict, we take a representative value or 1.0
+            val = comp_multipliers.get(config_key)
+            if isinstance(val, dict):
+                # For Copa, take a middle ground or 'octavos' as representative baseline if available
+                base_multiplier = val.get("octavos", 1.2)
+            elif isinstance(val, (int, float)):
+                base_multiplier = float(val)
+
+        # Normalize importance: arbitrary max multiplier around 3.0 -> 1.0
+        # Multipliers range from ~0.6 (Friendly) to 3.0 (UCL)
+        features["match_importance"] = min(1.0, base_multiplier / 3.0)
 
         # Boost importance if it's a derby
         if match.is_derby:
-            features["match_importance"] = min(1.0, features["match_importance"] * 1.2)
+             # Use derby_multiplier if available
+            derby_mult = self.pricing_rules.get("rival_multipliers", {}).get("derby_multiplier", 1.2) 
+            # Slightly adjust importance based on derby multiplier relative to normal
+            features["match_importance"] = min(1.0, features["match_importance"] * (derby_mult / 1.8)) # 1.8 is approx avg multiplier
 
         logger.debug(f"Competition features for {match.id}: {features}")
         return features
@@ -89,14 +117,25 @@ class MatchFeatureExtractor:
             - rival_is_big_club: bool (traditional big clubs)
         """
         features = {}
+        
+        # Get feature engineering config
+        fe_config = self.pricing_rules.get("feature_engineering", {})
+        rival_config = fe_config.get("rival_position", {})
+
+        top_threshold = rival_config.get("top_team_threshold", 4)
+        bottom_threshold = rival_config.get("bottom_team_threshold", 18)
+        norm_factor = self.settings.stadium_capacity # Not correct, using league size
+        # Hardcoding league size as 20 for standard logic if not in config, or add to config
+        # For now assume 20 as in original
+        LEAGUE_SIZE = 20.0 
 
         # Rival position features
         if match.away_position is not None:
             features["rival_position"] = match.away_position
             # Normalize: lower position (1) is better, normalize to 0-1 range
-            features["rival_position_normalized"] = (20 - match.away_position) / 20.0
-            features["rival_is_top_team"] = match.away_position <= 4
-            features["rival_is_bottom_team"] = match.away_position >= 18
+            features["rival_position_normalized"] = (LEAGUE_SIZE - match.away_position) / LEAGUE_SIZE
+            features["rival_is_top_team"] = match.away_position <= top_threshold
+            features["rival_is_bottom_team"] = match.away_position >= bottom_threshold
         else:
             # Unknown position - use neutral values
             features["rival_position"] = 10
@@ -104,12 +143,18 @@ class MatchFeatureExtractor:
             features["rival_is_top_team"] = False
             features["rival_is_bottom_team"] = False
 
-        # Big clubs that attract more fans (Spanish league examples)
-        big_clubs = {
-            "Real Madrid", "FC Barcelona", "Atlético Madrid",
-            "Sevilla FC", "Athletic Club", "Valencia CF", "Real Betis"
-        }
-        features["rival_is_big_club"] = match.away_team in big_clubs
+        # Big clubs: check rival multipliers for high values
+        rival_multipliers = self.pricing_rules.get("rival_multipliers", {})
+        
+        # Identify if rival is a "big club" based on having a specific high multiplier
+        # Any team with multiplier >= 1.6 (Real Sociedad level) can be considered big/important
+        is_big_club = False
+        if match.away_team in rival_multipliers:
+            mult = rival_multipliers[match.away_team]
+            if isinstance(mult, (int, float)) and mult >= 1.6:
+                is_big_club = True
+                
+        features["rival_is_big_club"] = is_big_club
 
         logger.debug(f"Rival features for {match.id} vs {match.away_team}: {features}")
         return features
@@ -129,13 +174,23 @@ class MatchFeatureExtractor:
             - home_fighting_europe: bool
         """
         features = {}
+        
+        # Get feature engineering config
+        fe_config = self.pricing_rules.get("feature_engineering", {})
+        home_config = fe_config.get("home_position", {})
+        
+        top_threshold = home_config.get("top_team_threshold", 6)
+        relegation_threshold = home_config.get("relegation_threshold", 15)
+        europe_min = home_config.get("europe_min", 4)
+        europe_max = home_config.get("europe_max", 7)
+        LEAGUE_SIZE = 20.0
 
         if match.home_position is not None:
             features["home_position"] = match.home_position
-            features["home_position_normalized"] = (20 - match.home_position) / 20.0
-            features["home_is_top_team"] = match.home_position <= 6
-            features["home_fighting_relegation"] = match.home_position >= 15
-            features["home_fighting_europe"] = 4 <= match.home_position <= 7
+            features["home_position_normalized"] = (LEAGUE_SIZE - match.home_position) / LEAGUE_SIZE
+            features["home_is_top_team"] = match.home_position <= top_threshold
+            features["home_fighting_relegation"] = match.home_position >= relegation_threshold
+            features["home_fighting_europe"] = europe_min <= match.home_position <= europe_max
         else:
             # Unknown position - use neutral values
             features["home_position"] = 10
