@@ -18,6 +18,8 @@ from sklearn.preprocessing import StandardScaler
 from src.domain.models.match import Match
 from src.domain.models.zone import Zone
 from src.ml.features.match_features import MatchFeatureExtractor
+from src.ml.features.external_features import ExternalFeatureExtractor
+from src.ml.features.temporal_features import TemporalFeatureExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +56,10 @@ class DemandModel:
         self.is_trained = False
         self.metrics: Dict[str, float] = {}
         
-        # Initialize feature extractor
+        # Initialize feature extractors
         self.feature_extractor = MatchFeatureExtractor()
+        self.external_feature_extractor = ExternalFeatureExtractor()
+        self.temporal_feature_extractor = TemporalFeatureExtractor()
         
         self._init_model()
 
@@ -110,22 +114,23 @@ class DemandModel:
         match_features = self.feature_extractor.extract_competition_features(match)
         rival_features = self.feature_extractor.extract_rival_features(match)
         home_features = self.feature_extractor.extract_home_team_features(match)
+        external_features = self.external_feature_extractor.extract_all(match)
+        temporal_features = self.temporal_feature_extractor.extract_all(match.date)
         
         # Combine all features
         features = {
-            # Temporal
             "days_to_match": days_to_match,
-            "is_weekend": 1 if match.date.weekday() >= 5 else 0,
-            "match_hour": match.date.hour,
             
             # Zone
             "zone_capacity": zone.capacity,
             "zone_base_price": zone.base_price,
             
-            # Match context
+            # Feature groups
             **match_features,
             **rival_features,
-            **home_features
+            **home_features,
+            **external_features,
+            **temporal_features
         }
         
         # Convert all to numeric (simple handling)
@@ -140,11 +145,6 @@ class DemandModel:
         numeric_features["is_weekend_x_importance"] = numeric_features.get("is_weekend", 0) * numeric_features.get("match_importance", 0)
         numeric_features["is_derby_x_importance"] = numeric_features.get("is_derby", 0) * numeric_features.get("match_importance", 0)
         
-        # Add day of week one-hot
-        dow = match.date.weekday()
-        for i in range(7):
-            numeric_features[f"dow_{i}"] = 1.0 if dow == i else 0.0
-
         return numeric_features
 
     def train(
