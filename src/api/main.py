@@ -32,6 +32,7 @@ from src.core.exceptions import (
     SmartPricingException,
 )
 from src.core.logging import setup_logging
+from src.utils.metrics import get_metrics, set_app_info
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -62,6 +63,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
     # Setup logging
     setup_logging()
+
+    # Set application info for metrics
+    set_app_info(
+        version=settings.app_version,
+        environment=settings.environment,
+        commit_sha=None,  # Could be populated from env variable
+    )
 
     # Validate configuration
     warnings = settings.validate_configuration()
@@ -163,43 +171,9 @@ def create_app(settings: Settings = None) -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Add request logging middleware
-    @app.middleware("http")
-    async def log_requests(request: Request, call_next: Callable) -> Response:
-        """Log all HTTP requests with timing information."""
-        start_time = time.time()
-
-        # Log request
-        logger.info(
-            f"Request started: {request.method} {request.url.path}",
-            extra={
-                "method": request.method,
-                "path": request.url.path,
-                "client": request.client.host if request.client else "unknown",
-            },
-        )
-
-        # Process request
-        response = await call_next(request)
-
-        # Calculate duration
-        duration = time.time() - start_time
-
-        # Log response
-        logger.info(
-            f"Request completed: {request.method} {request.url.path} - {response.status_code} ({duration:.3f}s)",
-            extra={
-                "method": request.method,
-                "path": request.url.path,
-                "status_code": response.status_code,
-                "duration": duration,
-            },
-        )
-
-        # Add timing header
-        response.headers["X-Process-Time"] = str(duration)
-
-        return response
+    # Setup middleware for metrics and logging
+    from src.api.middleware import setup_middleware
+    setup_middleware(app)
 
     # Add exception handlers
     @app.exception_handler(SmartPricingException)
@@ -413,21 +387,19 @@ def create_app(settings: Settings = None) -> FastAPI:
             checks=checks,
         )
 
-    # Metrics endpoint (placeholder for Prometheus)
+    # Metrics endpoint for Prometheus
     @app.get("/metrics", tags=["Monitoring"])
-    async def metrics() -> dict:
-        """Expose metrics for monitoring.
+    async def metrics() -> Response:
+        """Expose metrics in Prometheus format.
 
-        Note: In production, this should expose Prometheus-formatted metrics.
+        Returns:
+            Response with Prometheus-formatted metrics
         """
-        return {
-            "message": "Prometheus metrics will be exposed here",
-            "uptime_seconds": (
-                (datetime.utcnow() - app_state["startup_time"]).total_seconds()
-                if app_state["startup_time"]
-                else 0
-            ),
-        }
+        metrics_data = get_metrics()
+        return Response(
+            content=metrics_data,
+            media_type="text/plain; version=0.0.4; charset=utf-8",
+        )
 
     # Include routers
     from src.api import admin, analytics, pricing, sales_simulator, simulator

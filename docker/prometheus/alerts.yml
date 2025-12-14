@@ -1,0 +1,196 @@
+# Prometheus Alert Rules for Smart Pricing System
+
+groups:
+  - name: api_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(api_requests_total{status=~"5.."}[5m])) /
+            sum(rate(api_requests_total[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      # High latency
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(api_request_duration_seconds_bucket[5m])) by (le, endpoint)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High API latency detected on {{ $labels.endpoint }}"
+          description: "P95 latency is {{ $value }}s (threshold: 2s)"
+
+      # Too many requests in progress
+      - alert: TooManyRequestsInProgress
+        expr: sum(api_requests_in_progress) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Too many concurrent API requests"
+          description: "{{ $value }} requests currently in progress (threshold: 100)"
+
+  - name: pricing_alerts
+    interval: 60s
+    rules:
+      # No pricing calculations
+      - alert: NoPricingCalculations
+        expr: |
+          rate(pricing_calculations_total[1h]) == 0
+        for: 1h
+        labels:
+          severity: critical
+          component: pricing
+        annotations:
+          summary: "No pricing calculations in the last hour"
+          description: "The pricing engine may be down or stuck"
+
+      # Slow pricing calculations
+      - alert: SlowPricingCalculations
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(pricing_calculation_duration_seconds_bucket[10m])) by (le)
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: pricing
+        annotations:
+          summary: "Slow pricing calculations detected"
+          description: "P95 pricing calculation time is {{ $value }}s (threshold: 5s)"
+
+  - name: cache_alerts
+    interval: 60s
+    rules:
+      # Low cache hit ratio
+      - alert: LowCacheHitRatio
+        expr: cache_hit_ratio < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit ratio"
+          description: "Cache hit ratio is {{ $value | humanizePercentage }} (threshold: 50%)"
+
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # High database operation duration
+      - alert: SlowDatabaseOperations
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(db_operation_duration_seconds_bucket[5m])) by (le, operation)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database operations detected"
+          description: "P95 {{ $labels.operation }} duration is {{ $value }}s (threshold: 1s)"
+
+      # Database errors
+      - alert: DatabaseErrors
+        expr: rate(db_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database errors detected"
+          description: "{{ $value }} database errors per second"
+
+  - name: external_api_alerts
+    interval: 60s
+    rules:
+      # High external API error rate
+      - alert: ExternalAPIErrors
+        expr: |
+          sum(rate(external_api_errors_total[10m])) by (service) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: external_api
+        annotations:
+          summary: "High error rate from {{ $labels.service }}"
+          description: "{{ $value }} errors per second from {{ $labels.service }}"
+
+      # External API rate limit hits
+      - alert: ExternalAPIRateLimited
+        expr: rate(external_api_rate_limit_hits[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: external_api
+        annotations:
+          summary: "Rate limit hit for {{ $labels.service }}"
+          description: "{{ $labels.service }} API is being rate limited"
+
+  - name: worker_alerts
+    interval: 120s
+    rules:
+      # Worker not running
+      - alert: WorkerNotRunning
+        expr: |
+          (time() - worker_last_run_timestamp) > 3600
+        for: 5m
+        labels:
+          severity: critical
+          component: worker
+        annotations:
+          summary: "Worker {{ $labels.worker_name }} hasn't run recently"
+          description: "Last run was {{ $value }} seconds ago (threshold: 1 hour)"
+
+      # High worker error rate
+      - alert: HighWorkerErrorRate
+        expr: |
+          sum(rate(worker_errors_total[10m])) by (worker_name) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: worker
+        annotations:
+          summary: "High error rate in {{ $labels.worker_name }}"
+          description: "{{ $value }} errors per second"
+
+  - name: business_alerts
+    interval: 300s
+    rules:
+      # Low sales velocity
+      - alert: LowSalesVelocity
+        expr: |
+          avg(sales_velocity{match_id!=""}) < 1
+        for: 1h
+        labels:
+          severity: info
+          component: business
+        annotations:
+          summary: "Low sales velocity detected"
+          description: "Average sales velocity is {{ $value }} tickets/hour"
+
+      # No ticket sales
+      - alert: NoTicketSales
+        expr: |
+          rate(tickets_sold_total[4h]) == 0
+        for: 4h
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "No ticket sales in the last 4 hours"
+          description: "This may indicate a problem with the ticketing system"

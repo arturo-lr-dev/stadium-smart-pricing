@@ -1,16 +1,86 @@
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-  external_labels:
-    monitor: 'smart-pricing'
+# Prometheus Configuration for Smart Pricing System
 
+global:
+  scrape_interval: 15s  # Scrape metrics every 15 seconds
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds
+  external_labels:
+    cluster: 'smart-pricing'
+    environment: 'development'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load alert rules
+rule_files:
+  - "/etc/prometheus/alerts.yml"
+
+# Scrape configurations
 scrape_configs:
+  # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
 
+  # Smart Pricing API
   - job_name: 'smart-pricing-api'
+    metrics_path: '/metrics'
     static_configs:
       - targets: ['host.docker.internal:8000']
-    metrics_path: '/metrics'
+        labels:
+          service: 'api'
+          component: 'backend'
+    # Scrape every 10 seconds for API (more frequent)
     scrape_interval: 10s
+
+  # Price Updater Worker
+  - job_name: 'price-updater-worker'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['price-updater:8001']
+        labels:
+          service: 'worker'
+          component: 'price-updater'
+    # Scrape every 30 seconds for workers
+    scrape_interval: 30s
+
+  # Data Collector Worker
+  - job_name: 'data-collector-worker'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['data-collector:8002']
+        labels:
+          service: 'worker'
+          component: 'data-collector'
+    scrape_interval: 30s
+
+  # Model Retrainer Worker
+  - job_name: 'model-retrainer-worker'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['model-retrainer:8003']
+        labels:
+          service: 'worker'
+          component: 'model-retrainer'
+    scrape_interval: 60s
+
+  # PostgreSQL Exporter (if added in the future)
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #       labels:
+  #         service: 'database'
+  #         component: 'postgres'
+
+  # Redis Exporter (if added in the future)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #       labels:
+  #         service: 'cache'
+  #         component: 'redis'
