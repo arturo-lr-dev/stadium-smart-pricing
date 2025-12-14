@@ -16,6 +16,12 @@ from src.domain.models.match import Match
 
 logger = logging.getLogger(__name__)
 
+# Import here to avoid circular dependency
+try:
+    from src.integrations.football_data import FootballDataAPI
+except ImportError:
+    FootballDataAPI = None
+
 
 class RulesEngine:
     """
@@ -25,15 +31,24 @@ class RulesEngine:
     methods to calculate various pricing factors based on match characteristics.
     """
 
-    def __init__(self, config_path: str = "config/pricing_rules.yaml"):
+    def __init__(
+        self,
+        config_path: str = "config/pricing_rules.yaml",
+        football_api: Optional["FootballDataAPI"] = None,
+        db_session: Optional[Any] = None,
+    ):
         """
         Initialize the Rules Engine.
 
         Args:
             config_path: Path to the pricing rules YAML file
+            football_api: Optional Football Data API client for team performance data
+            db_session: Optional database session for team lookups
         """
         self.config_path = Path(config_path)
         self.rules: Dict[str, Any] = {}
+        self.football_api = football_api
+        self.db_session = db_session
         self._load_rules()
         logger.info(f"RulesEngine initialized with config from {config_path}")
 
@@ -316,6 +331,11 @@ class RulesEngine:
             time_multiplier = float(match_time_multipliers.get("night", 1.10))
             multipliers["match_time"] = time_multiplier
 
+        # Team performance multiplier (based on recent form)
+        team_performance = self._get_team_performance_multiplier(match.home_team)
+        if team_performance != 1.0:
+            multipliers["team_performance"] = team_performance
+
         logger.debug(
             f"Special multipliers for match {match.id}: {multipliers}"
         )
@@ -339,6 +359,161 @@ class RulesEngine:
         multiplier = float(weather_multipliers.get(weather_condition, 1.0))
         logger.debug(f"Weather factor for '{weather_condition}': {multiplier}")
         return multiplier
+
+    def _get_team_performance_multiplier(self, team_name: str) -> float:
+        """
+        Calculate team performance multiplier based on recent form.
+
+        Args:
+            team_name: Name of the home team
+
+        Returns:
+            Performance multiplier based on recent results
+        """
+        # If no football API available, return neutral multiplier
+        if not self.football_api:
+            logger.debug("No Football API available, using neutral team performance")
+            return 1.0
+
+        try:
+            # Try to get team ID from team name (simplified mapping)
+            # In production, you'd have a proper mapping table
+            team_id = self._get_team_id_from_name(team_name)
+            if not team_id:
+                logger.debug(f"Team ID not found for {team_name}, using neutral performance")
+                return 1.0
+
+            # Get recent form (last 5 matches)
+            recent_matches = self.football_api.get_team_recent_form(team_id, matches=5)
+
+            if not recent_matches:
+                logger.debug(f"No recent matches found for {team_name}, using neutral performance")
+                return 1.0
+
+            # Calculate wins, draws, losses
+            wins = 0
+            draws = 0
+            losses = 0
+
+            for match in recent_matches:
+                home_team = match.get("homeTeam", {})
+                away_team = match.get("awayTeam", {})
+                score = match.get("score", {}).get("fullTime", {})
+                home_score = score.get("home")
+                away_score = score.get("away")
+
+                if home_score is None or away_score is None:
+                    continue
+
+                # Determine if our team was home or away
+                is_home = home_team.get("id") == team_id
+
+                if is_home:
+                    if home_score > away_score:
+                        wins += 1
+                    elif home_score == away_score:
+                        draws += 1
+                    else:
+                        losses += 1
+                else:
+                    if away_score > home_score:
+                        wins += 1
+                    elif away_score == home_score:
+                        draws += 1
+                    else:
+                        losses += 1
+
+            total_matches = wins + draws + losses
+            if total_matches == 0:
+                return 1.0
+
+            # Calculate win percentage
+            win_percentage = wins / total_matches
+
+            # Get performance category and multiplier
+            performance_multipliers = self.rules.get("special_conditions", {}).get("team_performance", {})
+
+            if win_percentage >= 0.8:  # 4-5 wins
+                multiplier = float(performance_multipliers.get("excellent", 1.15))
+                category = "excellent"
+            elif win_percentage >= 0.6:  # 3 wins
+                multiplier = float(performance_multipliers.get("very_good", 1.08))
+                category = "very_good"
+            elif win_percentage >= 0.4:  # 2 wins
+                multiplier = float(performance_multipliers.get("good", 1.02))
+                category = "good"
+            elif win_percentage >= 0.2:  # 1 win
+                multiplier = float(performance_multipliers.get("poor", 0.95))
+                category = "poor"
+            elif wins == 0:  # No wins
+                multiplier = float(performance_multipliers.get("very_poor", 0.90))
+                category = "very_poor"
+            else:
+                multiplier = float(performance_multipliers.get("average", 1.0))
+                category = "average"
+
+            logger.info(
+                f"Team performance for {team_name}: {category} "
+                f"({wins}W-{draws}D-{losses}L, {win_percentage:.1%}) = {multiplier}"
+            )
+
+            return multiplier
+
+        except Exception as e:
+            logger.warning(
+                f"Failed to calculate team performance for {team_name}: {e}. Using neutral multiplier."
+            )
+            return 1.0
+
+    def _get_team_id_from_name(self, team_name: str) -> Optional[str]:
+        """
+        Get team ID from team name using database.
+
+        Args:
+            team_name: Team name
+
+        Returns:
+            Team ID if found, None otherwise
+        """
+        # Try to get team ID from database
+        if self.db_session:
+            try:
+                from src.domain.models.db_models import TeamDB
+
+                team = self.db_session.query(TeamDB).filter(
+                    TeamDB.name == team_name
+                ).first()
+
+                if team and team.football_data_api_id:
+                    return team.football_data_api_id
+
+            except Exception as e:
+                logger.warning(f"Failed to query team from database: {e}")
+
+        # Fallback to hardcoded mapping if database query fails
+        team_mapping = {
+            "RCD Mallorca": "1084",
+            "Real Madrid": "86",
+            "FC Barcelona": "81",
+            "Atlético Madrid": "78",
+            "Sevilla FC": "559",
+            "Real Betis": "90",
+            "Valencia CF": "94",
+            "Real Sociedad": "92",
+            "Athletic Club": "77",
+            "Villarreal CF": "94",
+            "Celta de Vigo": "558",
+            "Girona FC": "1049",
+            "CA Osasuna": "79",
+            "Getafe CF": "82",
+            "UD Las Palmas": "275",
+            "Deportivo Alavés": "263",
+            "RCD Espanyol": "80",
+            "Rayo Vallecano": "87",
+            "Almería": "1090",
+        }
+
+        return team_mapping.get(team_name)
 
     def is_price_change_allowed(
         self,

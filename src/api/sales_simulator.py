@@ -231,18 +231,18 @@ async def simulate_sales_timeline(
                 "revenue": round(zone_total_revenue, 2),
                 "price_change_percent": round(((current_price - base_price) / base_price) * 100, 1),
                 "factors": {
-                    "demand_score": round(factors.demand_score, 2),
-                    "time_factor": round(factors.time_factor, 2),
-                    "inventory_factor": round(factors.inventory_factor, 2),
-                    "competition_factor": round(factors.competition_factor, 2),
-                    "rival_factor": round(factors.rival_factor, 2),
-                    "weather_factor": round(factors.weather_factor, 2),
+                    "demand_score": round(factors.demand_score, 2) if hasattr(factors, "demand_score") and factors.demand_score is not None else "NA",
+                    "time_factor": round(factors.time_factor, 2) if hasattr(factors, "time_factor") and factors.time_factor is not None else "NA",
+                    "inventory_factor": round(factors.inventory_factor, 2) if hasattr(factors, "inventory_factor") and factors.inventory_factor is not None else "NA",
+                    "competition_factor": round(factors.competition_factor, 2) if hasattr(factors, "competition_factor") and factors.competition_factor is not None else "NA",
+                    "rival_factor": round(factors.rival_factor, 2) if hasattr(factors, "rival_factor") and factors.rival_factor is not None else "NA",
+                    "weather_factor": round(factors.weather_factor, 2) if hasattr(factors, "weather_factor") and factors.weather_factor is not None else "NA",
                     "special_conditions": {
-                        "weekday": round(factors.special_conditions.get("weekday", 1.0), 2),
-                        "derby": round(factors.special_conditions.get("derby", 1.0), 2),
-                        "holiday": round(factors.special_conditions.get("holiday", 1.0), 2),
-                        "match_time": round(factors.special_conditions.get("match_time", 1.0), 2),
-                        "team_performance": round(factors.special_conditions.get("team_performance", 1.0), 2),
+                        "weekday": round(factors.special_conditions["weekday"], 2) if "weekday" in factors.special_conditions else "NA",
+                        "derby": round(factors.special_conditions["derby"], 2) if "derby" in factors.special_conditions else "NA",
+                        "holiday": round(factors.special_conditions["holiday"], 2) if "holiday" in factors.special_conditions else "NA",
+                        "match_time": round(factors.special_conditions["match_time"], 2) if "match_time" in factors.special_conditions else "NA",
+                        "team_performance": round(factors.special_conditions["team_performance"], 2) if "team_performance" in factors.special_conditions else "NA",
                     }
                 }
             })

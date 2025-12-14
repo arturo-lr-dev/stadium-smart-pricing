@@ -26,6 +26,7 @@ from src.domain.models import (
     PaymentStatus,
     PricingHistoryDB,
     SaleDB,
+    TeamDB,
     ZoneDB,
 )
 
@@ -41,9 +42,44 @@ def clear_all_data() -> None:
         db.query(SaleDB).delete()
         db.query(MatchDB).delete()
         db.query(ZoneDB).delete()
+        db.query(TeamDB).delete()
         db.commit()
 
     logger.info("✓ All data cleared")
+
+
+def seed_teams() -> None:
+    """Seed La Liga teams with Football Data API mappings."""
+    logger.info("Seeding teams...")
+
+    teams = [
+        {"id": "team_mallorca", "name": "RCD Mallorca", "short_name": "Mallorca", "league": "LaLiga", "football_data_api_id": "89"},  # Cambiado de 1084 a 89
+        {"id": "team_real_madrid", "name": "Real Madrid", "short_name": "Madrid", "league": "LaLiga", "football_data_api_id": "86"},  # ✓ Correcto
+        {"id": "team_barcelona", "name": "FC Barcelona", "short_name": "Barça", "league": "LaLiga", "football_data_api_id": "81"},  # ✓ Correcto
+        {"id": "team_atletico", "name": "Atlético Madrid", "short_name": "Atleti", "league": "LaLiga", "football_data_api_id": "78"},  # ✓ Correcto
+        {"id": "team_sevilla", "name": "Sevilla FC", "short_name": "Sevilla", "league": "LaLiga", "football_data_api_id": "559"},  # ✓ Correcto
+        {"id": "team_betis", "name": "Real Betis", "short_name": "Betis", "league": "LaLiga", "football_data_api_id": "90"},  # ✓ Correcto
+        {"id": "team_valencia", "name": "Valencia CF", "short_name": "Valencia", "league": "LaLiga", "football_data_api_id": "95"},  # Cambiado de 94 a 95
+        {"id": "team_real_sociedad", "name": "Real Sociedad", "short_name": "La Real", "league": "LaLiga", "football_data_api_id": "92"},  # ✓ Correcto
+        {"id": "team_athletic", "name": "Athletic Club", "short_name": "Athletic", "league": "LaLiga", "football_data_api_id": "77"},  # ✓ Correcto
+        {"id": "team_villarreal", "name": "Villarreal CF", "short_name": "Villarreal", "league": "LaLiga", "football_data_api_id": "94"},  # ✓ Correcto
+        {"id": "team_celta", "name": "Celta de Vigo", "short_name": "Celta", "league": "LaLiga", "football_data_api_id": "558"},  # ✓ Correcto
+        {"id": "team_girona", "name": "Girona FC", "short_name": "Girona", "league": "LaLiga", "football_data_api_id": "298"},  # Cambiado de 1049 a 298
+        {"id": "team_osasuna", "name": "CA Osasuna", "short_name": "Osasuna", "league": "LaLiga", "football_data_api_id": "79"},  # ✓ Correcto
+        {"id": "team_getafe", "name": "Getafe CF", "short_name": "Getafe", "league": "LaLiga", "football_data_api_id": "82"},  # ✓ Correcto
+        {"id": "team_las_palmas", "name": "UD Las Palmas", "short_name": "Las Palmas", "league": "LaLiga", "football_data_api_id": "275"},  # No está en el documento
+        {"id": "team_alaves", "name": "Deportivo Alavés", "short_name": "Alavés", "league": "LaLiga", "football_data_api_id": "263"},  # ✓ Correcto
+        {"id": "team_espanyol", "name": "RCD Espanyol", "short_name": "Espanyol", "league": "LaLiga", "football_data_api_id": "80"},  # ✓ Correcto
+        {"id": "team_rayo", "name": "Rayo Vallecano", "short_name": "Rayo", "league": "LaLiga", "football_data_api_id": "87"},  # ✓ Correcto
+        {"id": "team_almeria", "name": "Almería", "short_name": "Almería", "league": "LaLiga", "football_data_api_id": "1090"},  # No está en el documento
+    ]
+    with get_db() as db:
+        for team_data in teams:
+            team = TeamDB(**team_data)
+            db.merge(team)  # Use merge to handle duplicates
+        db.commit()
+
+    logger.info(f"✓ Seeded {len(teams)} teams")
 
 
 def seed_zones() -> None:
@@ -424,7 +460,8 @@ Examples:
         elif args.matches_only:
             seed_matches()
         else:
-            # Seed in order (zones first, then matches, then sales and pricing)
+            # Seed in order (teams first, then zones, matches, sales and pricing)
+            seed_teams()
             seed_zones()
             seed_matches()
             seed_sales()

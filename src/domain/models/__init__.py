@@ -16,6 +16,7 @@ from src.domain.models.db_models import (
     PaymentStatus as DBPaymentStatus,
     PricingHistoryDB,
     SaleDB,
+    TeamDB,
     ZoneDB,
 )
 
@@ -68,6 +69,7 @@ __all__ = [
     "DemandMetricsDB",
     "ExternalDataDB",
     "ConfigurationDB",
+    "TeamDB",
     "DBMatchStatus",
     "DBCustomerType",
     "DBPaymentStatus",

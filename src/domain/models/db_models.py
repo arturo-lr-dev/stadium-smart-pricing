@@ -26,6 +26,34 @@ from sqlalchemy.sql import func
 from src.core.database import Base
 
 
+class TeamDB(Base):
+    """
+    Team database model.
+
+    Stores team information and mapping to external API IDs.
+    """
+
+    __tablename__ = "teams"
+
+    # Primary key
+    id = Column(String(50), primary_key=True, index=True)
+
+    # Team information
+    name = Column(String(100), nullable=False, unique=True, index=True)
+    short_name = Column(String(50), nullable=True)
+    league = Column(String(50), nullable=True)
+
+    # External API mappings
+    football_data_api_id = Column(String(50), nullable=True, index=True)
+
+    # Additional metadata
+    metadata_json = Column(JSON, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
 class MatchStatus(str, PyEnum):
     """Match status enumeration."""
 
