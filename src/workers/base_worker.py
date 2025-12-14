@@ -12,6 +12,13 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
 
+from src.utils.metrics import (
+    worker_errors_total,
+    worker_last_run_timestamp,
+    worker_task_duration_seconds,
+    worker_tasks_total,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -71,9 +78,24 @@ class BaseWorker(ABC):
         self.running = True
         self.last_heartbeat = datetime.now()
 
+        # Record worker start
+        worker_tasks_total.labels(worker=self.name, status="started").inc()
+
+        start_time = time.time()
         try:
             self.run()
+
+            # Record successful completion
+            duration = time.time() - start_time
+            worker_task_duration_seconds.labels(worker=self.name).observe(duration)
+            worker_tasks_total.labels(worker=self.name, status="completed").inc()
+
         except Exception as e:
+            # Record failure
+            duration = time.time() - start_time
+            worker_task_duration_seconds.labels(worker=self.name).observe(duration)
+            worker_tasks_total.labels(worker=self.name, status="failed").inc()
+
             logger.error(f"Worker {self.name} failed with error: {e}", exc_info=True)
             raise
         finally:
@@ -91,6 +113,10 @@ class BaseWorker(ABC):
         Should be called periodically by the worker to indicate it's alive.
         """
         self.last_heartbeat = datetime.now()
+
+        # Update last run timestamp metric
+        worker_last_run_timestamp.labels(worker=self.name).set(self.last_heartbeat.timestamp())
+
         logger.debug(f"Worker {self.name} heartbeat at {self.last_heartbeat}")
 
     def is_healthy(self) -> bool:
@@ -127,6 +153,13 @@ class BaseWorker(ABC):
             Exception: If max consecutive errors exceeded
         """
         self.error_count += 1
+
+        # Record worker error metric
+        worker_errors_total.labels(
+            worker=self.name,
+            error_type=type(error).__name__
+        ).inc()
+
         logger.error(
             f"Error in worker {self.name} (count: {self.error_count}/{self.max_consecutive_errors}): {error}",
             exc_info=True

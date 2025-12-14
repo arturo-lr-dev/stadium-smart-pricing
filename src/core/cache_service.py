@@ -7,6 +7,7 @@ con serialización automática, TTL management y estrategias de cache.
 
 import json
 import pickle
+import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
@@ -15,6 +16,11 @@ import redis
 from src.core.exceptions import CacheError
 from src.core.logging import get_logger
 from src.core.redis_client import get_redis_client_instance
+from src.utils.metrics import (
+    cache_operation_duration_seconds,
+    cache_operations_total,
+    update_cache_metrics,
+)
 
 logger = get_logger(__name__)
 
@@ -70,6 +76,10 @@ class CacheService:
         if serializer not in ["json", "pickle"]:
             raise ValueError("Serializer must be 'json' or 'pickle'")
         self.serializer = serializer
+
+        # Metrics tracking
+        self._total_gets = 0
+        self._cache_hits = 0
 
         logger.info(
             f"CacheService initialized (ttl={default_ttl}s, "
@@ -158,19 +168,60 @@ class CacheService:
             >>> cache.get("nonexistent")
             None
         """
+        start_time = time.time()
         try:
             full_key = self._make_key(key)
             value = self.redis_client.get(full_key)
 
+            # Update metrics tracking
+            self._total_gets += 1
+
             if value is None:
+                # Cache miss
                 logger.debug(f"Cache miss: {key}")
+                cache_operations_total.labels(
+                    operation="get",
+                    result="miss"
+                ).inc()
+
+                # Update hit ratio metric
+                update_cache_metrics(self._cache_hits, self._total_gets)
+
+                duration = time.time() - start_time
+                cache_operation_duration_seconds.labels(operation="get").observe(duration)
+
                 return None
 
+            # Cache hit
+            self._cache_hits += 1
             logger.debug(f"Cache hit: {key}")
-            return self._deserialize(value)
+
+            cache_operations_total.labels(
+                operation="get",
+                result="hit"
+            ).inc()
+
+            # Update hit ratio metric
+            update_cache_metrics(self._cache_hits, self._total_gets)
+
+            deserialized = self._deserialize(value)
+
+            duration = time.time() - start_time
+            cache_operation_duration_seconds.labels(operation="get").observe(duration)
+
+            return deserialized
 
         except Exception as e:
             logger.error(f"Error getting key '{key}': {e}")
+
+            cache_operations_total.labels(
+                operation="get",
+                result="error"
+            ).inc()
+
+            duration = time.time() - start_time
+            cache_operation_duration_seconds.labels(operation="get").observe(duration)
+
             return None
 
     def set(
@@ -196,6 +247,7 @@ class CacheService:
             >>> cache.get("key")
             {'data': 'value'}
         """
+        start_time = time.time()
         try:
             full_key = self._make_key(key)
             serialized = self._serialize(value)
@@ -207,10 +259,29 @@ class CacheService:
                 self.redis_client.set(full_key, serialized)
 
             logger.debug(f"Cache set: {key} (ttl={ttl}s)")
+
+            # Record metrics
+            cache_operations_total.labels(
+                operation="set",
+                result="success"
+            ).inc()
+
+            duration = time.time() - start_time
+            cache_operation_duration_seconds.labels(operation="set").observe(duration)
+
             return True
 
         except Exception as e:
             logger.error(f"Error setting key '{key}': {e}")
+
+            cache_operations_total.labels(
+                operation="set",
+                result="error"
+            ).inc()
+
+            duration = time.time() - start_time
+            cache_operation_duration_seconds.labels(operation="set").observe(duration)
+
             return False
 
     def delete(self, key: str) -> bool:
@@ -230,14 +301,35 @@ class CacheService:
             >>> cache.delete("key")
             False
         """
+        start_time = time.time()
         try:
             full_key = self._make_key(key)
             result = self.redis_client.delete(full_key)
+
             logger.debug(f"Cache delete: {key} (existed={result > 0})")
+
+            # Record metrics
+            cache_operations_total.labels(
+                operation="delete",
+                result="success" if result > 0 else "miss"
+            ).inc()
+
+            duration = time.time() - start_time
+            cache_operation_duration_seconds.labels(operation="delete").observe(duration)
+
             return result > 0
 
         except Exception as e:
             logger.error(f"Error deleting key '{key}': {e}")
+
+            cache_operations_total.labels(
+                operation="delete",
+                result="error"
+            ).inc()
+
+            duration = time.time() - start_time
+            cache_operation_duration_seconds.labels(operation="delete").observe(duration)
+
             return False
 
     def exists(self, key: str) -> bool:

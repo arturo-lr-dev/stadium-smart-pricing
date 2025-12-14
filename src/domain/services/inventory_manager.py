@@ -13,6 +13,7 @@ from src.core.cache_strategies import InventoryCacheStrategy
 from src.domain.models.zone import Zone
 from src.domain.repositories.sale_repository import SaleRepository
 from src.domain.repositories.zone_repository import ZoneRepository
+from src.utils.metrics import sales_velocity, zone_occupancy_percent
 
 logger = logging.getLogger(__name__)
 
@@ -88,9 +89,13 @@ class InventoryManager:
         # Calculate available
         available_tickets = max(0, zone.capacity - sold_tickets)
 
+        # Calculate and update occupancy metric
+        occupancy = (sold_tickets / zone.capacity * 100) if zone.capacity > 0 else 0.0
+        zone_occupancy_percent.labels(match_id=match_id, zone_id=zone_id).set(occupancy)
+
         logger.debug(
             f"Inventory for match {match_id}, zone {zone_id}: "
-            f"{sold_tickets} sold, {available_tickets} available"
+            f"{sold_tickets} sold, {available_tickets} available ({occupancy:.1f}% occupancy)"
         )
 
         # Cache the result
@@ -234,6 +239,10 @@ class InventoryManager:
         tickets_sold, velocity = self.sale_repo.get_sales_velocity(
             match_id, zone_id, hours
         )
+
+        # Update sales velocity metric
+        if zone_id:
+            sales_velocity.labels(match_id=match_id, zone_id=zone_id).set(velocity)
 
         logger.debug(
             f"Sales velocity for match {match_id}"

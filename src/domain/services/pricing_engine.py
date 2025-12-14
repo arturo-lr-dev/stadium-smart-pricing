@@ -23,6 +23,13 @@ from src.domain.services.demand_predictor import DemandPredictor
 from src.domain.services.inventory_manager import InventoryManager
 from src.domain.services.rules_engine import RulesEngine
 from src.integrations.weather_api import WeatherAPI
+from src.utils.metrics import (
+    MetricsContext,
+    active_matches,
+    pricing_calculation_duration_seconds,
+    pricing_calculations_total,
+    record_price_change,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -119,51 +126,59 @@ class PricingEngine:
             except Exception as e:
                 logger.warning(f"Cache error in calculate_match_pricing, proceeding with calculation: {e}")
 
+        # Increment pricing calculations counter
+        pricing_calculations_total.labels(
+            match_id=match.id,
+            calculation_type="full"
+        ).inc()
+
         logger.info(
             f"Calculating pricing for match {match.id} ({match.home_team} vs {match.away_team}) "
             f"with {len(zones)} zones"
         )
 
-        # Calculate pricing for each zone
-        zone_pricings: List[ZonePricing] = []
+        # Measure calculation duration with metrics context
+        with MetricsContext(pricing_calculation_duration_seconds, {"calculation_type": "full"}):
+            # Calculate pricing for each zone
+            zone_pricings: List[ZonePricing] = []
 
-        for zone in zones:
-            try:
-                zone_pricing = self._calculate_zone_price(match, zone, current_datetime)
-                zone_pricings.append(zone_pricing)
-                logger.debug(
-                    f"Zone {zone.id}: price={zone_pricing.current_price:.2f}, "
-                    f"occupancy={zone_pricing.occupancy_percent:.1f}%"
-                )
-            except Exception as e:
-                logger.error(f"Error calculating pricing for zone {zone.id}: {e}")
-                # Continue with other zones instead of failing completely
-                continue
+            for zone in zones:
+                try:
+                    zone_pricing = self._calculate_zone_price(match, zone, current_datetime)
+                    zone_pricings.append(zone_pricing)
+                    logger.debug(
+                        f"Zone {zone.id}: price={zone_pricing.current_price:.2f}, "
+                        f"occupancy={zone_pricing.occupancy_percent:.1f}%"
+                    )
+                except Exception as e:
+                    logger.error(f"Error calculating pricing for zone {zone.id}: {e}")
+                    # Continue with other zones instead of failing completely
+                    continue
 
-        if not zone_pricings:
-            raise ValueError("Failed to calculate pricing for any zone")
+            if not zone_pricings:
+                raise ValueError("Failed to calculate pricing for any zone")
 
-        # Calculate aggregate metrics
-        total_sold = sum(zp.sold_tickets for zp in zone_pricings)
-        total_capacity = sum(zp.capacity for zp in zone_pricings)
-        total_revenue = sum(zp.sold_tickets * zp.current_price for zp in zone_pricings)
-        avg_price = sum(zp.current_price * zp.capacity for zp in zone_pricings) / total_capacity
+            # Calculate aggregate metrics
+            total_sold = sum(zp.sold_tickets for zp in zone_pricings)
+            total_capacity = sum(zp.capacity for zp in zone_pricings)
+            total_revenue = sum(zp.sold_tickets * zp.current_price for zp in zone_pricings)
+            avg_price = sum(zp.current_price * zp.capacity for zp in zone_pricings) / total_capacity
 
-        match_pricing = MatchPricing(
-            match_id=match.id,
-            zones=zone_pricings,
-            total_revenue=total_revenue,
-            total_sold=total_sold,
-            total_capacity=total_capacity,
-            avg_price=avg_price,
-            last_calculation=current_datetime,
-        )
+            match_pricing = MatchPricing(
+                match_id=match.id,
+                zones=zone_pricings,
+                total_revenue=total_revenue,
+                total_sold=total_sold,
+                total_capacity=total_capacity,
+                avg_price=avg_price,
+                last_calculation=current_datetime,
+            )
 
-        logger.info(
-            f"Match pricing calculated: {len(zone_pricings)} zones, "
-            f"avg_price={avg_price:.2f}, "
-            f"occupancy={total_sold}/{total_capacity} ({(total_sold/total_capacity*100):.1f}%)"
-        )
+            logger.info(
+                f"Match pricing calculated: {len(zone_pricings)} zones, "
+                f"avg_price={avg_price:.2f}, "
+                f"occupancy={total_sold}/{total_capacity} ({(total_sold/total_capacity*100):.1f}%)"
+            )
 
         # Cache the result
         if use_cache:
@@ -438,7 +453,9 @@ class PricingEngine:
         if not is_allowed:
             return False, f"Price change not allowed: {reason}"
 
-        # Price change is allowed
+        # Price change is allowed - record metric
+        record_price_change(match_id, zone_id, current_price, new_price)
+
         change_direction = "increase" if new_price > current_price else "decrease"
         return True, (
             f"Price {change_direction} approved: "
@@ -472,6 +489,9 @@ class PricingEngine:
             return []
 
         logger.info(f"Found {len(upcoming_matches)} upcoming matches")
+
+        # Update active matches metric
+        active_matches.set(len(upcoming_matches))
 
         # Get all active zones (assumes zones are same for all matches)
         zones = self.zone_repo.get_active_zones()

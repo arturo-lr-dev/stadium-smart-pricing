@@ -6,6 +6,7 @@ team statistics, standings, match details, and recent form data.
 """
 
 import logging
+import time as time_module
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from time import sleep
@@ -15,6 +16,12 @@ import httpx
 from src.core.cache_strategies import ExternalDataCacheStrategy
 from src.core.config import get_settings
 from src.core.exceptions import ExternalAPIError
+from src.utils.metrics import (
+    external_api_calls_total,
+    external_api_duration_seconds,
+    external_api_errors_total,
+    external_api_rate_limit_hits,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -154,11 +161,21 @@ class FootballDataAPI:
         Raises:
             ExternalAPIError: If the request fails after all retries.
         """
-        # Check cache first
+        # Check cache first (don't count as API call)
         if cache_key:
             cached = self._get_from_cache(cache_key)
             if cached is not None:
                 return cached
+
+        # Start metrics tracking
+        start_time = time_module.time()
+
+        # Record API call metric
+        external_api_calls_total.labels(
+            service="football_data",
+            endpoint=endpoint,
+            method="GET"
+        ).inc()
 
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         headers = {"X-Auth-Token": self.api_key} if self.api_key else {}
@@ -186,6 +203,12 @@ class FootballDataAPI:
                     # Rate limited by API - wait and retry
                     retry_after = int(response.headers.get("Retry-After", 60))
                     logger.warning(f"API rate limited. Waiting {retry_after} seconds")
+
+                    # Record rate limit hit
+                    external_api_rate_limit_hits.labels(
+                        service="football_data"
+                    ).inc()
+
                     sleep(min(retry_after, self.max_delay))
                     continue
                 elif response.status_code >= 500:
@@ -225,6 +248,14 @@ class FootballDataAPI:
                     },
                 )
 
+                # Record success metrics
+                duration = time_module.time() - start_time
+                external_api_duration_seconds.labels(
+                    service="football_data",
+                    endpoint=endpoint,
+                    status_code="200"
+                ).observe(duration)
+
                 return data
 
             except httpx.TimeoutException as e:
@@ -246,6 +277,20 @@ class FootballDataAPI:
                 raise
 
         # If we get here, all retries failed
+        # Record error metrics
+        duration = time_module.time() - start_time
+        external_api_errors_total.labels(
+            service="football_data",
+            endpoint=endpoint,
+            error_type=type(last_exception).__name__ if last_exception else "Unknown"
+        ).inc()
+
+        external_api_duration_seconds.labels(
+            service="football_data",
+            endpoint=endpoint,
+            status_code="error"
+        ).observe(duration)
+
         raise ExternalAPIError(api_name="football_data", message=f"Football Data API request failed after {self.max_attempts} attempts: {last_exception}",
         )
 
