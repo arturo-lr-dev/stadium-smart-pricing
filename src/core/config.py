@@ -12,12 +12,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DatabaseSettings(BaseModel):
     """Configuración de base de datos."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     host: str = Field(default="localhost", alias="DATABASE_HOST")
     port: int = Field(default=5432, alias="DATABASE_PORT")
@@ -42,6 +44,8 @@ class DatabaseSettings(BaseModel):
 class RedisSettings(BaseModel):
     """Configuración de Redis."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     host: str = Field(default="localhost", alias="REDIS_HOST")
     port: int = Field(default=6379, alias="REDIS_PORT")
     db: int = Field(default=0, alias="REDIS_DB")
@@ -59,6 +63,8 @@ class RedisSettings(BaseModel):
 class APISettings(BaseModel):
     """Configuración de la API."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     host: str = Field(default="0.0.0.0", alias="API_HOST")
     port: int = Field(default=8000, alias="API_PORT")
     reload: bool = Field(default=True, alias="API_RELOAD")
@@ -66,6 +72,8 @@ class APISettings(BaseModel):
 
 class LoggingSettings(BaseModel):
     """Configuración de logging."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     level: str = Field(default="INFO", alias="LOG_LEVEL")
     format: str = Field(default="text", alias="LOG_FORMAT")
@@ -95,6 +103,8 @@ class LoggingSettings(BaseModel):
 class PricingSettings(BaseModel):
     """Configuración del motor de pricing."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     update_interval: int = Field(default=300, alias="PRICING_UPDATE_INTERVAL")
     min_change_threshold: float = Field(default=0.5, alias="PRICING_MIN_CHANGE_THRESHOLD")
     max_daily_changes: int = Field(default=5, alias="PRICING_MAX_DAILY_CHANGES")
@@ -102,6 +112,8 @@ class PricingSettings(BaseModel):
 
 class MLSettings(BaseModel):
     """Configuración de Machine Learning."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     model_path: str = Field(default="models/demand_model.pkl", alias="ML_MODEL_PATH")
     retrain_interval: int = Field(default=604800, alias="ML_RETRAIN_INTERVAL")
@@ -131,6 +143,8 @@ class ExternalAPIsSettings(BaseModel):
 class SecuritySettings(BaseModel):
     """Configuración de seguridad."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     secret_key: str = Field(default="change-this-to-a-random-secret-key", alias="SECRET_KEY")
     algorithm: str = Field(default="HS256", alias="ALGORITHM")
     access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
@@ -138,6 +152,8 @@ class SecuritySettings(BaseModel):
 
 class CORSSettings(BaseModel):
     """Configuración de CORS."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     origins: List[str] = Field(
         default=["http://localhost:3000", "http://localhost:8000"], alias="CORS_ORIGINS"
@@ -164,7 +180,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
-        env_nested_delimiter="__"
+        env_nested_delimiter="__",
+        populate_by_name=True
     )
 
     # Información de la aplicación
