@@ -5,13 +5,11 @@ This module contains the InventoryManager class that manages inventory tracking,
 sales velocity calculations, and inventory alerts.
 """
 
-import json
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
-import redis
-
+from src.core.cache_strategies import InventoryCacheStrategy
 from src.domain.models.zone import Zone
 from src.domain.repositories.sale_repository import SaleRepository
 from src.domain.repositories.zone_repository import ZoneRepository
@@ -24,16 +22,15 @@ class InventoryManager:
     Inventory Manager for ticket inventory operations.
 
     This class provides methods to query inventory levels, calculate sales velocity,
-    predict sellout times, and generate inventory alerts. Uses Redis for caching
-    to minimize database queries.
+    predict sellout times, and generate inventory alerts. Uses InventoryCacheStrategy
+    for efficient caching with optimized 2-minute TTL.
     """
 
     def __init__(
         self,
         sale_repository: SaleRepository,
         zone_repository: ZoneRepository,
-        redis_client: redis.Redis,
-        cache_ttl: int = 300,  # 5 minutes default
+        cache_strategy: Optional[InventoryCacheStrategy] = None,
     ):
         """
         Initialize the Inventory Manager.
@@ -41,68 +38,12 @@ class InventoryManager:
         Args:
             sale_repository: Repository for sale operations
             zone_repository: Repository for zone operations
-            redis_client: Redis client for caching
-            cache_ttl: Cache time-to-live in seconds (default: 300)
+            cache_strategy: Cache strategy for inventory (uses default if not provided)
         """
         self.sale_repo = sale_repository
         self.zone_repo = zone_repository
-        self.redis_client = redis_client
-        self.cache_ttl = cache_ttl
-        logger.info(f"InventoryManager initialized with cache TTL of {cache_ttl}s")
-
-    def _get_cache_key(self, prefix: str, *args) -> str:
-        """
-        Generate a cache key with prefix and arguments.
-
-        Args:
-            prefix: Cache key prefix
-            *args: Additional key components
-
-        Returns:
-            Formatted cache key
-        """
-        return f"inventory:{prefix}:" + ":".join(str(arg) for arg in args)
-
-    def _get_from_cache(self, key: str) -> Optional[Dict]:
-        """
-        Get value from cache.
-
-        Args:
-            key: Cache key
-
-        Returns:
-            Cached value or None if not found
-        """
-        try:
-            cached = self.redis_client.get(key)
-            if cached:
-                logger.debug(f"Cache hit for key: {key}")
-                return json.loads(cached)
-            logger.debug(f"Cache miss for key: {key}")
-            return None
-        except Exception as e:
-            logger.error(f"Error reading from cache: {e}")
-            return None
-
-    def _set_in_cache(self, key: str, value: Dict, ttl: Optional[int] = None) -> None:
-        """
-        Set value in cache.
-
-        Args:
-            key: Cache key
-            value: Value to cache
-            ttl: Time-to-live in seconds (uses default if not provided)
-        """
-        try:
-            ttl = ttl or self.cache_ttl
-            self.redis_client.setex(
-                key,
-                ttl,
-                json.dumps(value)
-            )
-            logger.debug(f"Cached value for key: {key} (TTL: {ttl}s)")
-        except Exception as e:
-            logger.error(f"Error writing to cache: {e}")
+        self.cache = cache_strategy or InventoryCacheStrategy()
+        logger.info("InventoryManager initialized with InventoryCacheStrategy")
 
     def get_zone_inventory(
         self, match_id: str, zone_id: str, use_cache: bool = True
@@ -123,10 +64,18 @@ class InventoryManager:
         """
         # Check cache first
         if use_cache:
-            cache_key = self._get_cache_key("zone", match_id, zone_id)
-            cached = self._get_from_cache(cache_key)
-            if cached:
-                return cached["sold"], cached["available"]
+            try:
+                cached = self.cache.get(match_id, zone_id)
+                if cached:
+                    # JSON serialization converts tuples to lists, convert back
+                    if isinstance(cached, list) and len(cached) == 2:
+                        return tuple(cached)
+                    elif isinstance(cached, tuple):
+                        return cached
+                    else:
+                        logger.warning(f"Unexpected cached format for {match_id}/{zone_id}: {type(cached)}")
+            except Exception as e:
+                logger.warning(f"Cache error, falling back to database: {e}")
 
         # Get zone to determine capacity
         zone = self.zone_repo.get_by_id(zone_id)
@@ -146,11 +95,10 @@ class InventoryManager:
 
         # Cache the result
         if use_cache:
-            cache_key = self._get_cache_key("zone", match_id, zone_id)
-            self._set_in_cache(
-                cache_key,
-                {"sold": sold_tickets, "available": available_tickets}
-            )
+            try:
+                self.cache.set(match_id, zone_id, (sold_tickets, available_tickets))
+            except Exception as e:
+                logger.warning(f"Failed to cache inventory data: {e}")
 
         return sold_tickets, available_tickets
 
@@ -160,6 +108,8 @@ class InventoryManager:
         """
         Get inventory for all zones in a match.
 
+        Uses batch cache operations for efficiency.
+
         Args:
             match_id: Match identifier
             use_cache: Whether to use cache (default True)
@@ -167,39 +117,49 @@ class InventoryManager:
         Returns:
             Dictionary mapping zone_id to (sold_tickets, available_tickets)
         """
-        # Check cache first
-        if use_cache:
-            cache_key = self._get_cache_key("match", match_id)
-            cached = self._get_from_cache(cache_key)
-            if cached:
-                # Convert back to tuples
-                return {
-                    zone_id: (data["sold"], data["available"])
-                    for zone_id, data in cached.items()
-                }
-
         # Get all active zones
         zones = self.zone_repo.get_active_zones()
+        zone_ids = [zone.id for zone in zones]
 
         inventory = {}
-        for zone in zones:
+        zones_to_fetch = []
+
+        # Try to get cached data in batch
+        if use_cache:
+            try:
+                cached_data = self.cache.get_match_inventory(match_id, zone_ids)
+
+                for zone_id in zone_ids:
+                    if zone_id in cached_data:
+                        data = cached_data[zone_id]
+                        # Convert list to tuple if necessary
+                        if isinstance(data, list) and len(data) == 2:
+                            inventory[zone_id] = tuple(data)
+                        elif isinstance(data, tuple):
+                            inventory[zone_id] = data
+                    else:
+                        zones_to_fetch.append(zone_id)
+            except Exception as e:
+                logger.warning(f"Cache error in get_match_inventory, falling back to database: {e}")
+                zones_to_fetch = zone_ids
+        else:
+            zones_to_fetch = zone_ids
+
+        # Fetch missing zones from database
+        for zone_id in zones_to_fetch:
             sold, available = self.get_zone_inventory(
-                match_id, zone.id, use_cache=False
+                match_id, zone_id, use_cache=False
             )
-            inventory[zone.id] = (sold, available)
+            inventory[zone_id] = (sold, available)
+
+            # Cache individual zone result
+            if use_cache:
+                self.cache.set(match_id, zone_id, (sold, available))
 
         logger.debug(
-            f"Inventory for match {match_id}: {len(inventory)} zones"
+            f"Inventory for match {match_id}: {len(inventory)} zones "
+            f"({len(zones_to_fetch)} from DB, {len(zone_ids) - len(zones_to_fetch)} from cache)"
         )
-
-        # Cache the result (convert tuples to dict for JSON serialization)
-        if use_cache:
-            cache_key = self._get_cache_key("match", match_id)
-            cache_data = {
-                zone_id: {"sold": sold, "available": available}
-                for zone_id, (sold, available) in inventory.items()
-            }
-            self._set_in_cache(cache_key, cache_data)
 
         return inventory
 
@@ -415,25 +375,14 @@ class InventoryManager:
         try:
             if zone_id:
                 # Invalidate specific zone
-                cache_key = self._get_cache_key("zone", match_id, zone_id)
-                self.redis_client.delete(cache_key)
+                self.cache.invalidate(match_id, zone_id)
                 logger.info(f"Invalidated cache for match {match_id}, zone {zone_id}")
             else:
-                # Invalidate entire match
-                match_key = self._get_cache_key("match", match_id)
-                self.redis_client.delete(match_key)
-
-                # Also invalidate all zone keys for this match
-                # Get all active zones and invalidate their keys
-                zones = self.zone_repo.get_active_zones()
-                for zone in zones:
-                    zone_key = self._get_cache_key("zone", match_id, zone.id)
-                    self.redis_client.delete(zone_key)
-
+                # Invalidate all zones for this match
+                self.cache.invalidate_match(match_id)
                 logger.info(f"Invalidated all cache for match {match_id}")
-
         except Exception as e:
-            logger.error(f"Error invalidating cache: {e}")
+            logger.warning(f"Failed to invalidate cache: {e}")
 
     def warm_cache(self, match_ids: List[str]) -> None:
         """

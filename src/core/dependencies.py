@@ -302,7 +302,7 @@ def get_inventory_manager(db: Session = Depends(get_db)):
         db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
-        Instancia de InventoryManager
+        Instancia de InventoryManager con InventoryCacheStrategy
 
     Example:
         >>> from fastapi import Depends
@@ -310,20 +310,19 @@ def get_inventory_manager(db: Session = Depends(get_db)):
         >>> def get_inventory(manager = Depends(get_inventory_manager)):
         >>>     return manager.get_match_inventory("match_123")
     """
+    from src.core.cache_strategies import get_inventory_cache
     from src.domain.services.inventory_manager import InventoryManager
 
     sale_repo = get_sale_repository(db)
     zone_repo = get_zone_repository(db)
-    redis_client = get_redis_client()
 
-    settings = get_settings()
-    cache_ttl = settings.redis.ttl
+    # Use inventory cache strategy (2-minute TTL, optimized for inventory)
+    cache_strategy = get_inventory_cache()
 
     return InventoryManager(
         sale_repository=sale_repo,
         zone_repository=zone_repo,
-        redis_client=redis_client,
-        cache_ttl=cache_ttl,
+        cache_strategy=cache_strategy,
     )
 
 

@@ -2,15 +2,16 @@
 Tests for Inventory Manager.
 
 Comprehensive unit tests for the InventoryManager class and all its methods.
+Updated to use InventoryCacheStrategy.
 """
 
-import json
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, MagicMock, patch
 
 from src.domain.services.inventory_manager import InventoryManager
 from src.domain.models.zone import Zone, ZoneCategory
+from src.core.cache_strategies import InventoryCacheStrategy
 
 
 @pytest.fixture
@@ -73,24 +74,24 @@ def mock_zone_repo():
 
 
 @pytest.fixture
-def mock_redis():
-    """Fixture to create a mock Redis client."""
-    redis = Mock()
-    redis.get = Mock(return_value=None)
-    redis.setex = Mock()
-    redis.delete = Mock()
-    redis.ping = Mock(return_value=True)
-    return redis
+def mock_cache_strategy():
+    """Fixture to create a mock InventoryCacheStrategy."""
+    cache = Mock(spec=InventoryCacheStrategy)
+    cache.get = Mock(return_value=None)
+    cache.set = Mock(return_value=True)
+    cache.invalidate = Mock(return_value=True)
+    cache.invalidate_match = Mock(return_value=3)
+    cache.get_match_inventory = Mock(return_value={})
+    return cache
 
 
 @pytest.fixture
-def inventory_manager(mock_sale_repo, mock_zone_repo, mock_redis):
-    """Fixture to create an InventoryManager instance."""
+def inventory_manager(mock_sale_repo, mock_zone_repo, mock_cache_strategy):
+    """Fixture to create an InventoryManager instance with cache strategy."""
     return InventoryManager(
         sale_repository=mock_sale_repo,
         zone_repository=mock_zone_repo,
-        redis_client=mock_redis,
-        cache_ttl=300,
+        cache_strategy=mock_cache_strategy,
     )
 
 
@@ -98,86 +99,24 @@ class TestInventoryManagerInitialization:
     """Tests for InventoryManager initialization."""
 
     def test_initialization_success(self, inventory_manager):
-        """Test successful initialization of InventoryManager."""
+        """Test successful initialization of InventoryManager with cache strategy."""
         assert inventory_manager is not None
-        assert inventory_manager.cache_ttl == 300
+        assert inventory_manager.cache is not None
+        assert isinstance(inventory_manager.cache, (InventoryCacheStrategy, Mock))
 
-    def test_initialization_with_custom_ttl(self, mock_sale_repo, mock_zone_repo, mock_redis):
-        """Test initialization with custom cache TTL."""
+    def test_initialization_with_custom_cache_strategy(self, mock_sale_repo, mock_zone_repo):
+        """Test initialization with custom cache strategy."""
+        custom_cache = Mock(spec=InventoryCacheStrategy)
         manager = InventoryManager(
             sale_repository=mock_sale_repo,
             zone_repository=mock_zone_repo,
-            redis_client=mock_redis,
-            cache_ttl=600,
+            cache_strategy=custom_cache,
         )
-        assert manager.cache_ttl == 600
+        assert manager.cache is custom_cache
 
 
-class TestCacheHelpers:
-    """Tests for cache helper methods."""
-
-    def test_get_cache_key(self, inventory_manager):
-        """Test cache key generation."""
-        key = inventory_manager._get_cache_key("zone", "match_001", "zone_001")
-        assert key == "inventory:zone:match_001:zone_001"
-
-    def test_get_from_cache_hit(self, inventory_manager, mock_redis):
-        """Test cache retrieval when value exists."""
-        cached_data = {"sold": 100, "available": 900}
-        mock_redis.get.return_value = json.dumps(cached_data)
-
-        result = inventory_manager._get_from_cache("test_key")
-
-        assert result == cached_data
-        mock_redis.get.assert_called_once_with("test_key")
-
-    def test_get_from_cache_miss(self, inventory_manager, mock_redis):
-        """Test cache retrieval when value doesn't exist."""
-        mock_redis.get.return_value = None
-
-        result = inventory_manager._get_from_cache("test_key")
-
-        assert result is None
-
-    def test_get_from_cache_error(self, inventory_manager, mock_redis):
-        """Test cache retrieval handles errors gracefully."""
-        mock_redis.get.side_effect = Exception("Redis error")
-
-        result = inventory_manager._get_from_cache("test_key")
-
-        assert result is None
-
-    def test_set_in_cache(self, inventory_manager, mock_redis):
-        """Test setting value in cache."""
-        data = {"sold": 100, "available": 900}
-
-        inventory_manager._set_in_cache("test_key", data, ttl=600)
-
-        mock_redis.setex.assert_called_once_with(
-            "test_key",
-            600,
-            json.dumps(data)
-        )
-
-    def test_set_in_cache_default_ttl(self, inventory_manager, mock_redis):
-        """Test setting value in cache with default TTL."""
-        data = {"sold": 100, "available": 900}
-
-        inventory_manager._set_in_cache("test_key", data)
-
-        mock_redis.setex.assert_called_once_with(
-            "test_key",
-            300,  # Default TTL
-            json.dumps(data)
-        )
-
-    def test_set_in_cache_error(self, inventory_manager, mock_redis):
-        """Test setting cache handles errors gracefully."""
-        mock_redis.setex.side_effect = Exception("Redis error")
-        data = {"sold": 100, "available": 900}
-
-        # Should not raise exception
-        inventory_manager._set_in_cache("test_key", data)
+# TestCacheHelpers class removed - methods _get_cache_key, _get_from_cache,
+# _set_in_cache no longer exist, replaced by InventoryCacheStrategy
 
 
 class TestGetZoneInventory:
@@ -196,9 +135,9 @@ class TestGetZoneInventory:
         mock_sale_repo.get_total_sold.assert_called_once_with("match_001", "zone_001")
         mock_zone_repo.get_by_id.assert_called_once_with("zone_001")
 
-    def test_get_zone_inventory_with_cache_miss(self, inventory_manager, mock_sale_repo, mock_redis):
+    def test_get_zone_inventory_with_cache_miss(self, inventory_manager, mock_sale_repo, mock_cache_strategy):
         """Test getting zone inventory with cache miss."""
-        mock_redis.get.return_value = None
+        mock_cache_strategy.get.return_value = None
         mock_sale_repo.get_total_sold.return_value = 3000
 
         sold, available = inventory_manager.get_zone_inventory("match_001", "zone_001")
@@ -206,18 +145,23 @@ class TestGetZoneInventory:
         assert sold == 3000
         assert available == 2000
 
-        # Should have tried to set cache
-        assert mock_redis.setex.called
+        # Should have tried to get from cache and then set cache
+        mock_cache_strategy.get.assert_called_once_with("match_001", "zone_001")
+        mock_cache_strategy.set.assert_called_once_with("match_001", "zone_001", (3000, 2000))
 
-    def test_get_zone_inventory_with_cache_hit(self, inventory_manager, mock_redis):
+    def test_get_zone_inventory_with_cache_hit(self, inventory_manager, mock_cache_strategy, mock_sale_repo):
         """Test getting zone inventory with cache hit."""
-        cached_data = {"sold": 3000, "available": 2000}
-        mock_redis.get.return_value = json.dumps(cached_data)
+        # Cache returns list (JSON serialization converts tuples to lists)
+        mock_cache_strategy.get.return_value = [3000, 2000]
 
         sold, available = inventory_manager.get_zone_inventory("match_001", "zone_001")
 
         assert sold == 3000
         assert available == 2000
+
+        # Should NOT call sale repository when cache hits
+        mock_sale_repo.get_total_sold.assert_not_called()
+        mock_cache_strategy.get.assert_called_once_with("match_001", "zone_001")
 
     def test_get_zone_inventory_zero_available(self, inventory_manager, mock_sale_repo):
         """Test getting zone inventory when sold out."""
@@ -271,19 +215,33 @@ class TestGetMatchInventory:
         assert inventory["zone_002"] == (400, 100)
         assert inventory["zone_003"] == (2500, 2500)
 
-    def test_get_match_inventory_with_cache_hit(self, inventory_manager, mock_redis):
-        """Test getting match inventory with cache hit."""
+    def test_get_match_inventory_with_cache_hit(self, inventory_manager, mock_cache_strategy, mock_zone_repo, mock_sale_repo):
+        """Test getting match inventory with partial cache hit."""
+        # Cache returns lists (JSON serialization converts tuples to lists)
+        # Only zone_001 and zone_002 are cached
         cached_data = {
-            "zone_001": {"sold": 3000, "available": 2000},
-            "zone_002": {"sold": 400, "available": 100},
+            "zone_001": [3000, 2000],
+            "zone_002": [400, 100],
         }
-        mock_redis.get.return_value = json.dumps(cached_data)
+        mock_cache_strategy.get_match_inventory.return_value = cached_data
+
+        # zone_003 is not cached, so it will be fetched from database
+        mock_sale_repo.get_total_sold.return_value = 100
 
         inventory = inventory_manager.get_match_inventory("match_001")
 
-        assert len(inventory) == 2
+        # Should have all 3 zones (2 from cache, 1 from DB)
+        assert len(inventory) == 3
         assert inventory["zone_001"] == (3000, 2000)
         assert inventory["zone_002"] == (400, 100)
+        assert inventory["zone_003"] == (100, 4900)  # 100 sold, 4900 available from 5000 capacity
+
+        # Should use cache batch operation
+        zone_ids = ["zone_001", "zone_002", "zone_003"]
+        mock_cache_strategy.get_match_inventory.assert_called_once_with("match_001", zone_ids)
+
+        # zone_003 is missing from cache, so only 1 call to database
+        assert mock_sale_repo.get_total_sold.call_count == 1
 
 
 class TestGetTotalOccupancy:
@@ -490,21 +448,21 @@ class TestCheckInventoryAlerts:
 class TestCacheManagement:
     """Tests for cache management methods."""
 
-    def test_invalidate_cache_specific_zone(self, inventory_manager, mock_redis):
+    def test_invalidate_cache_specific_zone(self, inventory_manager, mock_cache_strategy):
         """Test invalidating cache for a specific zone."""
         inventory_manager.invalidate_cache("match_001", "zone_001")
 
-        mock_redis.delete.assert_called_once()
-        call_args = mock_redis.delete.call_args[0][0]
-        assert "match_001" in call_args
-        assert "zone_001" in call_args
+        # Should call cache_strategy.invalidate with match_id and zone_id
+        mock_cache_strategy.invalidate.assert_called_once_with("match_001", "zone_001")
 
-    def test_invalidate_cache_entire_match(self, inventory_manager, mock_redis):
+    def test_invalidate_cache_entire_match(self, inventory_manager, mock_cache_strategy):
         """Test invalidating cache for entire match."""
+        mock_cache_strategy.invalidate_match.return_value = 3
+
         inventory_manager.invalidate_cache("match_001")
 
-        # Should delete match key and all zone keys
-        assert mock_redis.delete.call_count >= 4  # 1 match + 3 zones
+        # Should call cache_strategy.invalidate_match to delete all zones
+        mock_cache_strategy.invalidate_match.assert_called_once_with("match_001")
 
     def test_warm_cache(self, inventory_manager, mock_sale_repo):
         """Test warming cache for multiple matches."""
@@ -576,9 +534,9 @@ class TestGetInventorySummary:
 class TestEdgeCases:
     """Tests for edge cases and error handling."""
 
-    def test_handle_redis_connection_error(self, inventory_manager, mock_redis, mock_sale_repo):
-        """Test graceful handling of Redis connection errors."""
-        mock_redis.get.side_effect = Exception("Connection error")
+    def test_handle_cache_connection_error(self, inventory_manager, mock_cache_strategy, mock_sale_repo):
+        """Test graceful handling of cache connection errors."""
+        mock_cache_strategy.get.side_effect = Exception("Cache connection error")
         mock_sale_repo.get_total_sold.return_value = 1000
 
         # Should fall back to database without crashing
