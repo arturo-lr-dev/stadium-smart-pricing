@@ -35,7 +35,7 @@ class PricingFactors(BaseModel):
         default=1.0, description="Rival team multiplier", ge=0.8, le=3.0
     )
     weather_factor: float = Field(
-        default=1.0, description="Weather impact multiplier", ge=0.9, le=1.1
+        default=1.0, description="Weather impact multiplier", ge=0.8, le=1.1
     )
     special_conditions: Dict[str, float] = Field(
         default_factory=dict, description="Special condition multipliers (derby, holiday, etc.)"
