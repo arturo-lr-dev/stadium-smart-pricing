@@ -122,9 +122,7 @@ class TicketingSystemAPI:
                 f"Failed to fetch inventory: {e}",
                 extra={"match_id": match_id},
             )
-            raise ExternalAPIError(
-                f"Ticketing System error: {e}",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Ticketing System error: {e}",
             )
 
     def reserve_tickets(
@@ -189,9 +187,7 @@ class TicketingSystemAPI:
                     "quantity": quantity,
                 },
             )
-            raise ExternalAPIError(
-                f"Ticketing System error: {e}",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Ticketing System error: {e}",
             )
 
     def confirm_purchase(self, reservation_id: str, payment_id: str) -> bool:
@@ -232,9 +228,7 @@ class TicketingSystemAPI:
                 f"Failed to confirm purchase: {e}",
                 extra={"reservation_id": reservation_id},
             )
-            raise ExternalAPIError(
-                f"Ticketing System error: {e}",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Ticketing System error: {e}",
             )
 
     def cancel_reservation(self, reservation_id: str) -> bool:
@@ -271,9 +265,7 @@ class TicketingSystemAPI:
                 f"Failed to cancel reservation: {e}",
                 extra={"reservation_id": reservation_id},
             )
-            raise ExternalAPIError(
-                f"Ticketing System error: {e}",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Ticketing System error: {e}",
             )
 
     def get_reservation_status(self, reservation_id: str) -> Dict:
@@ -319,9 +311,7 @@ class TicketingSystemAPI:
                 f"Failed to get reservation status: {e}",
                 extra={"reservation_id": reservation_id},
             )
-            raise ExternalAPIError(
-                f"Ticketing System error: {e}",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Ticketing System error: {e}",
             )
 
     # Mock implementation methods
@@ -336,7 +326,8 @@ class TicketingSystemAPI:
             key = f"{match_id}:{zone_id}"
             if key not in self._mock_inventory:
                 # Initialize with random-ish but consistent values
-                base = hash(key) % 500 + 100
+                # Use abs() to ensure positive, then ensure min of 100 tickets
+                base = abs(hash(key)) % 500 + 100
                 self._mock_inventory[key] = base
             inventory[zone_id] = self._mock_inventory[key]
 
@@ -351,14 +342,17 @@ class TicketingSystemAPI:
         customer_email: Optional[str] = None,
     ) -> str:
         """Create a mock reservation."""
+        # Ensure inventory is initialized for this match
+        if not any(k.startswith(f"{match_id}:") for k in self._mock_inventory.keys()):
+            # Initialize inventory for this match
+            self._get_mock_inventory(match_id)
+
         # Check if enough inventory available
         key = f"{match_id}:{zone_id}"
         available = self._mock_inventory.get(key, 0)
 
         if available < quantity:
-            raise ExternalAPIError(
-                f"Insufficient inventory. Available: {available}, Requested: {quantity}",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Insufficient inventory. Available: {available}, Requested: {quantity}",
             )
 
         # Create reservation
@@ -398,9 +392,7 @@ class TicketingSystemAPI:
     ) -> bool:
         """Confirm a mock reservation."""
         if reservation_id not in self._reservations:
-            raise ExternalAPIError(
-                f"Reservation {reservation_id} not found",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Reservation {reservation_id} not found",
             )
 
         reservation = self._reservations[reservation_id]
@@ -411,9 +403,7 @@ class TicketingSystemAPI:
             # Release inventory
             key = f"{reservation['match_id']}:{reservation['zone_id']}"
             self._mock_inventory[key] = self._mock_inventory.get(key, 0) + reservation["quantity"]
-            raise ExternalAPIError(
-                f"Reservation {reservation_id} has expired",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Reservation {reservation_id} has expired",
             )
 
         # Confirm reservation
@@ -427,18 +417,14 @@ class TicketingSystemAPI:
     def _cancel_mock_reservation(self, reservation_id: str) -> bool:
         """Cancel a mock reservation."""
         if reservation_id not in self._reservations:
-            raise ExternalAPIError(
-                f"Reservation {reservation_id} not found",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Reservation {reservation_id} not found",
             )
 
         reservation = self._reservations[reservation_id]
 
         # Only cancel if not already confirmed
         if reservation["status"] == ReservationStatus.CONFIRMED:
-            raise ExternalAPIError(
-                f"Cannot cancel confirmed reservation {reservation_id}",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Cannot cancel confirmed reservation {reservation_id}",
             )
 
         # Release inventory
@@ -455,9 +441,7 @@ class TicketingSystemAPI:
     def _get_mock_reservation_status(self, reservation_id: str) -> Dict:
         """Get status of a mock reservation."""
         if reservation_id not in self._reservations:
-            raise ExternalAPIError(
-                f"Reservation {reservation_id} not found",
-                source="ticketing_system",
+            raise ExternalAPIError(api_name="ticketing_system", message=f"Reservation {reservation_id} not found",
             )
 
         reservation = self._reservations[reservation_id].copy()

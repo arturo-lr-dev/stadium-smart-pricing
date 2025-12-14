@@ -59,10 +59,9 @@ class WeatherAPI:
 
         # Timeouts
         timeout_config = api_config.get("timeouts", {})
-        self.timeout = httpx.Timeout(
-            connect=timeout_config.get("connect", 5),
-            read=timeout_config.get("read", 30),
-        )
+        connect_timeout = timeout_config.get("connect", 5.0)
+        read_timeout = timeout_config.get("read", 30.0)
+        self.timeout = httpx.Timeout(timeout=30.0, connect=connect_timeout, read=read_timeout)
 
         # Simple in-memory cache (could be upgraded to Redis)
         self._cache: Dict[str, tuple[datetime, any]] = {}
@@ -174,10 +173,7 @@ class WeatherAPI:
 
                 # Handle HTTP errors
                 if response.status_code == 401:
-                    raise ExternalAPIError(
-                        "Weather API authentication failed. Check API key.",
-                        source="weather_api",
-                        status_code=401,
+                    raise ExternalAPIError(api_name="weather_api", message="Weather API authentication failed. Check API key.", details={"status_code": 401},
                     )
                 elif response.status_code == 429:
                     # Rate limited by API - wait and retry
@@ -202,15 +198,11 @@ class WeatherAPI:
                         sleep(delay)
                         continue
                     else:
-                        raise ExternalAPIError(
-                            f"Weather API server error: {response.status_code}",
-                            source="weather_api",
+                        raise ExternalAPIError(api_name="weather_api", message=f"Weather API server error: {response.status_code}",
                             status_code=response.status_code,
                         )
                 elif response.status_code != 200:
-                    raise ExternalAPIError(
-                        f"Weather API error: {response.status_code} - {response.text}",
-                        source="weather_api",
+                    raise ExternalAPIError(api_name="weather_api", message=f"Weather API error: {response.status_code} - {response.text}",
                         status_code=response.status_code,
                     )
 
@@ -251,9 +243,7 @@ class WeatherAPI:
                 raise
 
         # If we get here, all retries failed
-        raise ExternalAPIError(
-            f"Weather API request failed after {self.max_attempts} attempts: {last_exception}",
-            source="weather_api",
+        raise ExternalAPIError(api_name="weather_api", message=f"Weather API request failed after {self.max_attempts} attempts: {last_exception}",
         )
 
     def get_forecast(self, lat: float, lon: float, date: datetime) -> Dict:

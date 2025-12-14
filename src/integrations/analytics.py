@@ -160,9 +160,7 @@ class GoogleAnalyticsIntegration:
                 f"Failed to fetch page views: {e}",
                 extra={"match_id": match_id},
             )
-            raise ExternalAPIError(
-                f"Google Analytics error: {e}",
-                source="google_analytics",
+            raise ExternalAPIError(api_name="google_analytics", message=f"Google Analytics error: {e}",
             )
 
     def get_cart_additions(
@@ -216,9 +214,7 @@ class GoogleAnalyticsIntegration:
                 f"Failed to fetch cart additions: {e}",
                 extra={"match_id": match_id},
             )
-            raise ExternalAPIError(
-                f"Google Analytics error: {e}",
-                source="google_analytics",
+            raise ExternalAPIError(api_name="google_analytics", message=f"Google Analytics error: {e}",
             )
 
     def get_cart_abandonments(
@@ -272,9 +268,7 @@ class GoogleAnalyticsIntegration:
                 f"Failed to fetch cart abandonments: {e}",
                 extra={"match_id": match_id},
             )
-            raise ExternalAPIError(
-                f"Google Analytics error: {e}",
-                source="google_analytics",
+            raise ExternalAPIError(api_name="google_analytics", message=f"Google Analytics error: {e}",
             )
 
     def get_conversion_rate(self, match_id: str) -> float:

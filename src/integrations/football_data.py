@@ -59,10 +59,9 @@ class FootballDataAPI:
 
         # Timeouts
         timeout_config = api_config.get("timeouts", {})
-        self.timeout = httpx.Timeout(
-            connect=timeout_config.get("connect", 5),
-            read=timeout_config.get("read", 30),
-        )
+        connect_timeout = timeout_config.get("connect", 5.0)
+        read_timeout = timeout_config.get("read", 30.0)
+        self.timeout = httpx.Timeout(timeout=30.0, connect=connect_timeout, read=read_timeout)
 
         # Simple in-memory cache (could be upgraded to Redis)
         self._cache: Dict[str, tuple[datetime, any]] = {}
@@ -169,10 +168,7 @@ class FootballDataAPI:
 
                 # Handle HTTP errors
                 if response.status_code == 401:
-                    raise ExternalAPIError(
-                        "Football Data API authentication failed. Check API key.",
-                        source="football_data",
-                        status_code=401,
+                    raise ExternalAPIError(api_name="football_data", message="Football Data API authentication failed. Check API key.", details={"status_code": 401},
                     )
                 elif response.status_code == 429:
                     # Rate limited by API - wait and retry
@@ -193,15 +189,11 @@ class FootballDataAPI:
                         sleep(delay)
                         continue
                     else:
-                        raise ExternalAPIError(
-                            f"Football Data API server error: {response.status_code}",
-                            source="football_data",
+                        raise ExternalAPIError(api_name="football_data", message=f"Football Data API server error: {response.status_code}",
                             status_code=response.status_code,
                         )
                 elif response.status_code != 200:
-                    raise ExternalAPIError(
-                        f"Football Data API error: {response.status_code} - {response.text}",
-                        source="football_data",
+                    raise ExternalAPIError(api_name="football_data", message=f"Football Data API error: {response.status_code} - {response.text}",
                         status_code=response.status_code,
                     )
 
@@ -242,9 +234,7 @@ class FootballDataAPI:
                 raise
 
         # If we get here, all retries failed
-        raise ExternalAPIError(
-            f"Football Data API request failed after {self.max_attempts} attempts: {last_exception}",
-            source="football_data",
+        raise ExternalAPIError(api_name="football_data", message=f"Football Data API request failed after {self.max_attempts} attempts: {last_exception}",
         )
 
     def get_team_standings(self, league: str, season: str) -> Dict:
