@@ -110,14 +110,30 @@ class MLSettings(BaseSettings):
 class ExternalAPIsSettings(BaseSettings):
     """Configuración de APIs externas."""
 
+    # Football Data API
     football_data_api_key: Optional[str] = Field(default=None, alias="FOOTBALL_DATA_API_KEY")
     football_data_api_url: str = Field(
         default="https://api.football-data.org/v4", alias="FOOTBALL_DATA_API_URL"
     )
+
+    # Weather API
     weather_api_key: Optional[str] = Field(default=None, alias="WEATHER_API_KEY")
     weather_api_url: str = Field(
         default="https://api.openweathermap.org/data/2.5", alias="WEATHER_API_URL"
     )
+
+    # Google Analytics
+    ga_property_id: Optional[str] = Field(default="mock", alias="GA_PROPERTY_ID")
+    ga_credentials_path: str = Field(
+        default="credentials/google-analytics.json", alias="GA_CREDENTIALS_PATH"
+    )
+
+    # Ticketing System
+    ticketing_api_key: str = Field(default="mock", alias="TICKETING_API_KEY")
+    ticketing_api_url: str = Field(
+        default="https://api.ticketing-system.example.com/v1", alias="TICKETING_API_URL"
+    )
+    ticketing_reservation_ttl: int = Field(default=900, alias="TICKETING_RESERVATION_TTL")
 
 
 class SecuritySettings(BaseSettings):
@@ -194,6 +210,47 @@ class Settings(BaseSettings):
         """Inicializa y carga configuraciones YAML."""
         super().__init__(**kwargs)
         self._load_yaml_configs()
+
+    # Convenient properties for external APIs
+    @property
+    def FOOTBALL_DATA_API_KEY(self) -> Optional[str]:
+        """Get Football Data API key."""
+        return self.external_apis.football_data_api_key
+
+    @property
+    def WEATHER_API_KEY(self) -> Optional[str]:
+        """Get Weather API key."""
+        return self.external_apis.weather_api_key
+
+    @property
+    def GA_PROPERTY_ID(self) -> Optional[str]:
+        """Get Google Analytics Property ID."""
+        return self.external_apis.ga_property_id
+
+    @property
+    def GA_CREDENTIALS_PATH(self) -> str:
+        """Get Google Analytics credentials path."""
+        return self.external_apis.ga_credentials_path
+
+    @property
+    def TICKETING_API_KEY(self) -> str:
+        """Get Ticketing System API key."""
+        return self.external_apis.ticketing_api_key
+
+    def load_yaml_config(self, config_path: str) -> Dict[str, Any]:
+        """
+        Load a YAML configuration file.
+
+        Args:
+            config_path: Path to the YAML file.
+
+        Returns:
+            Dictionary with the configuration.
+        """
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
+                return yaml.safe_load(f)
+        return {}
 
     def _load_yaml_configs(self) -> None:
         """
