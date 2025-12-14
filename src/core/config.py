@@ -205,6 +205,52 @@ class Settings(BaseSettings):
     stadium_latitude: float = Field(default=39.590, alias="STADIUM_LATITUDE")
     stadium_longitude: float = Field(default=2.630, alias="STADIUM_LONGITUDE")
 
+    # Database configuration (captured from env vars)
+    database_host: str = Field(default="localhost", alias="DATABASE_HOST")
+    database_port: int = Field(default=5432, alias="DATABASE_PORT")
+    database_name: str = Field(default="smart_pricing", alias="DATABASE_NAME")
+    database_user: str = Field(default="postgres", alias="DATABASE_USER")
+    database_password: str = Field(default="postgres", alias="DATABASE_PASSWORD")
+    database_pool_size: int = Field(default=20, alias="DATABASE_POOL_SIZE")
+    database_max_overflow: int = Field(default=0, alias="DATABASE_MAX_OVERFLOW")
+    database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
+
+    # Redis configuration (captured from env vars)
+    redis_host: str = Field(default="localhost", alias="REDIS_HOST")
+    redis_port: int = Field(default=6379, alias="REDIS_PORT")
+    redis_db: int = Field(default=0, alias="REDIS_DB")
+    redis_password: Optional[str] = Field(default=None, alias="REDIS_PASSWORD")
+    redis_ttl: int = Field(default=300, alias="REDIS_TTL")
+
+    # API configuration (captured from env vars)
+    api_host: str = Field(default="0.0.0.0", alias="API_HOST")
+    api_port: int = Field(default=8000, alias="API_PORT")
+    api_reload: bool = Field(default=True, alias="API_RELOAD")
+
+    # Logging configuration (captured from env vars)
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    log_format: str = Field(default="text", alias="LOG_FORMAT")
+    log_file: Optional[str] = Field(default=None, alias="LOG_FILE")
+
+    # Pricing configuration (captured from env vars)
+    pricing_update_interval: int = Field(default=300, alias="PRICING_UPDATE_INTERVAL")
+    pricing_min_change_threshold: float = Field(default=0.5, alias="PRICING_MIN_CHANGE_THRESHOLD")
+    pricing_max_daily_changes: int = Field(default=5, alias="PRICING_MAX_DAILY_CHANGES")
+
+    # ML configuration (captured from env vars)
+    ml_model_path: str = Field(default="models/demand_model.pkl", alias="ML_MODEL_PATH")
+    ml_retrain_interval: int = Field(default=604800, alias="ML_RETRAIN_INTERVAL")
+
+    # Security configuration (captured from env vars)
+    secret_key: str = Field(default="change-this-to-a-random-secret-key", alias="SECRET_KEY")
+    algorithm: str = Field(default="HS256", alias="ALGORITHM")
+    access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
+
+    # CORS configuration (captured from env vars)
+    cors_origins: str = Field(
+        default="http://localhost:3000,http://localhost:8000", alias="CORS_ORIGINS"
+    )
+
     # External APIs configuration (captured from env vars)
     football_data_api_key: Optional[str] = Field(default=None, alias="FOOTBALL_DATA_API_KEY")
     football_data_api_url: str = Field(
@@ -225,15 +271,15 @@ class Settings(BaseSettings):
     ticketing_reservation_ttl: int = Field(default=900, alias="TICKETING_RESERVATION_TTL")
 
     # Sub-configuraciones
-    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
-    redis: RedisSettings = Field(default_factory=RedisSettings)
-    api: APISettings = Field(default_factory=APISettings)
-    logging: LoggingSettings = Field(default_factory=LoggingSettings)
-    pricing: PricingSettings = Field(default_factory=PricingSettings)
-    ml: MLSettings = Field(default_factory=MLSettings)
+    database: Optional[DatabaseSettings] = Field(default=None)
+    redis: Optional[RedisSettings] = Field(default=None)
+    api: Optional[APISettings] = Field(default=None)
+    logging: Optional[LoggingSettings] = Field(default=None)
+    pricing: Optional[PricingSettings] = Field(default=None)
+    ml: Optional[MLSettings] = Field(default=None)
     external_apis: Optional[ExternalAPIsSettings] = Field(default=None)
-    security: SecuritySettings = Field(default_factory=SecuritySettings)
-    cors: CORSSettings = Field(default_factory=CORSSettings)
+    security: Optional[SecuritySettings] = Field(default=None)
+    cors: Optional[CORSSettings] = Field(default=None)
 
     # Configuraciones YAML cargadas
     _yaml_configs: Dict[str, Any] = {}
@@ -241,6 +287,80 @@ class Settings(BaseSettings):
     def __init__(self, **kwargs):
         """Inicializa y carga configuraciones YAML."""
         super().__init__(**kwargs)
+
+        # Build database settings from captured env vars
+        if self.database is None:
+            self.database = DatabaseSettings(
+                host=self.database_host,
+                port=self.database_port,
+                name=self.database_name,
+                user=self.database_user,
+                password=self.database_password,
+                pool_size=self.database_pool_size,
+                max_overflow=self.database_max_overflow,
+                echo=self.database_echo,
+            )
+
+        # Build redis settings from captured env vars
+        if self.redis is None:
+            self.redis = RedisSettings(
+                host=self.redis_host,
+                port=self.redis_port,
+                db=self.redis_db,
+                password=self.redis_password,
+                ttl=self.redis_ttl,
+            )
+
+        # Build API settings from captured env vars
+        if self.api is None:
+            self.api = APISettings(
+                host=self.api_host,
+                port=self.api_port,
+                reload=self.api_reload,
+            )
+
+        # Build logging settings from captured env vars
+        if self.logging is None:
+            self.logging = LoggingSettings(
+                level=self.log_level,
+                format=self.log_format,
+                file=self.log_file,
+            )
+
+        # Build pricing settings from captured env vars
+        if self.pricing is None:
+            self.pricing = PricingSettings(
+                update_interval=self.pricing_update_interval,
+                min_change_threshold=self.pricing_min_change_threshold,
+                max_daily_changes=self.pricing_max_daily_changes,
+            )
+
+        # Build ML settings from captured env vars
+        if self.ml is None:
+            self.ml = MLSettings(
+                model_path=self.ml_model_path,
+                retrain_interval=self.ml_retrain_interval,
+            )
+
+        # Build security settings from captured env vars
+        if self.security is None:
+            self.security = SecuritySettings(
+                secret_key=self.secret_key,
+                algorithm=self.algorithm,
+                access_token_expire_minutes=self.access_token_expire_minutes,
+            )
+
+        # Build CORS settings from captured env vars
+        if self.cors is None:
+            # Parse CORS origins if it's a string
+            cors_list = (
+                [origin.strip() for origin in self.cors_origins.split(",")]
+                if isinstance(self.cors_origins, str)
+                else self.cors_origins
+            )
+            self.cors = CORSSettings(
+                origins=cors_list,
+            )
 
         # Build external_apis from captured env vars
         if self.external_apis is None:
