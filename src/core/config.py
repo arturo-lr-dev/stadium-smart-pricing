@@ -12,11 +12,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class DatabaseSettings(BaseSettings):
+class DatabaseSettings(BaseModel):
     """Configuración de base de datos."""
 
     host: str = Field(default="localhost", alias="DATABASE_HOST")
@@ -39,7 +39,7 @@ class DatabaseSettings(BaseSettings):
         return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
 
 
-class RedisSettings(BaseSettings):
+class RedisSettings(BaseModel):
     """Configuración de Redis."""
 
     host: str = Field(default="localhost", alias="REDIS_HOST")
@@ -56,7 +56,7 @@ class RedisSettings(BaseSettings):
         return f"redis://{self.host}:{self.port}/{self.db}"
 
 
-class APISettings(BaseSettings):
+class APISettings(BaseModel):
     """Configuración de la API."""
 
     host: str = Field(default="0.0.0.0", alias="API_HOST")
@@ -64,7 +64,7 @@ class APISettings(BaseSettings):
     reload: bool = Field(default=True, alias="API_RELOAD")
 
 
-class LoggingSettings(BaseSettings):
+class LoggingSettings(BaseModel):
     """Configuración de logging."""
 
     level: str = Field(default="INFO", alias="LOG_LEVEL")
@@ -92,7 +92,7 @@ class LoggingSettings(BaseSettings):
         return v
 
 
-class PricingSettings(BaseSettings):
+class PricingSettings(BaseModel):
     """Configuración del motor de pricing."""
 
     update_interval: int = Field(default=300, alias="PRICING_UPDATE_INTERVAL")
@@ -100,27 +100,35 @@ class PricingSettings(BaseSettings):
     max_daily_changes: int = Field(default=5, alias="PRICING_MAX_DAILY_CHANGES")
 
 
-class MLSettings(BaseSettings):
+class MLSettings(BaseModel):
     """Configuración de Machine Learning."""
 
     model_path: str = Field(default="models/demand_model.pkl", alias="ML_MODEL_PATH")
     retrain_interval: int = Field(default=604800, alias="ML_RETRAIN_INTERVAL")
 
 
-class ExternalAPIsSettings(BaseSettings):
+class ExternalAPIsSettings(BaseModel):
     """Configuración de APIs externas."""
 
-    football_data_api_key: Optional[str] = Field(default=None, alias="FOOTBALL_DATA_API_KEY")
-    football_data_api_url: str = Field(
-        default="https://api.football-data.org/v4", alias="FOOTBALL_DATA_API_URL"
-    )
-    weather_api_key: Optional[str] = Field(default=None, alias="WEATHER_API_KEY")
-    weather_api_url: str = Field(
-        default="https://api.openweathermap.org/data/2.5", alias="WEATHER_API_URL"
-    )
+    # Football Data API
+    football_data_api_key: Optional[str] = Field(default=None)
+    football_data_api_url: str = Field(default="https://api.football-data.org/v4")
+
+    # Weather API
+    weather_api_key: Optional[str] = Field(default=None)
+    weather_api_url: str = Field(default="https://api.openweathermap.org/data/2.5")
+
+    # Google Analytics
+    ga_property_id: Optional[str] = Field(default="mock")
+    ga_credentials_path: str = Field(default="credentials/google-analytics.json")
+
+    # Ticketing System
+    ticketing_api_key: str = Field(default="mock")
+    ticketing_api_url: str = Field(default="https://api.ticketing-system.example.com/v1")
+    ticketing_reservation_ttl: int = Field(default=900)
 
 
-class SecuritySettings(BaseSettings):
+class SecuritySettings(BaseModel):
     """Configuración de seguridad."""
 
     secret_key: str = Field(default="change-this-to-a-random-secret-key", alias="SECRET_KEY")
@@ -128,7 +136,7 @@ class SecuritySettings(BaseSettings):
     access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
 
-class CORSSettings(BaseSettings):
+class CORSSettings(BaseModel):
     """Configuración de CORS."""
 
     origins: List[str] = Field(
@@ -152,7 +160,11 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+        env_nested_delimiter="__"
     )
 
     # Información de la aplicación
@@ -176,6 +188,25 @@ class Settings(BaseSettings):
     stadium_latitude: float = Field(default=39.590, alias="STADIUM_LATITUDE")
     stadium_longitude: float = Field(default=2.630, alias="STADIUM_LONGITUDE")
 
+    # External APIs configuration (captured from env vars)
+    football_data_api_key: Optional[str] = Field(default=None, alias="FOOTBALL_DATA_API_KEY")
+    football_data_api_url: str = Field(
+        default="https://api.football-data.org/v4", alias="FOOTBALL_DATA_API_URL"
+    )
+    weather_api_key: Optional[str] = Field(default=None, alias="WEATHER_API_KEY")
+    weather_api_url: str = Field(
+        default="https://api.openweathermap.org/data/2.5", alias="WEATHER_API_URL"
+    )
+    ga_property_id: Optional[str] = Field(default="mock", alias="GA_PROPERTY_ID")
+    ga_credentials_path: str = Field(
+        default="credentials/google-analytics.json", alias="GA_CREDENTIALS_PATH"
+    )
+    ticketing_api_key: str = Field(default="mock", alias="TICKETING_API_KEY")
+    ticketing_api_url: str = Field(
+        default="https://api.ticketing-system.example.com/v1", alias="TICKETING_API_URL"
+    )
+    ticketing_reservation_ttl: int = Field(default=900, alias="TICKETING_RESERVATION_TTL")
+
     # Sub-configuraciones
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
@@ -183,7 +214,7 @@ class Settings(BaseSettings):
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     pricing: PricingSettings = Field(default_factory=PricingSettings)
     ml: MLSettings = Field(default_factory=MLSettings)
-    external_apis: ExternalAPIsSettings = Field(default_factory=ExternalAPIsSettings)
+    external_apis: Optional[ExternalAPIsSettings] = Field(default=None)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     cors: CORSSettings = Field(default_factory=CORSSettings)
 
@@ -193,7 +224,63 @@ class Settings(BaseSettings):
     def __init__(self, **kwargs):
         """Inicializa y carga configuraciones YAML."""
         super().__init__(**kwargs)
+
+        # Build external_apis from captured env vars
+        if self.external_apis is None:
+            self.external_apis = ExternalAPIsSettings(
+                football_data_api_key=self.football_data_api_key,
+                football_data_api_url=self.football_data_api_url,
+                weather_api_key=self.weather_api_key,
+                weather_api_url=self.weather_api_url,
+                ga_property_id=self.ga_property_id,
+                ga_credentials_path=self.ga_credentials_path,
+                ticketing_api_key=self.ticketing_api_key,
+                ticketing_api_url=self.ticketing_api_url,
+                ticketing_reservation_ttl=self.ticketing_reservation_ttl,
+            )
+
         self._load_yaml_configs()
+
+    # Convenient properties for external APIs
+    @property
+    def FOOTBALL_DATA_API_KEY(self) -> Optional[str]:
+        """Get Football Data API key."""
+        return self.external_apis.football_data_api_key
+
+    @property
+    def WEATHER_API_KEY(self) -> Optional[str]:
+        """Get Weather API key."""
+        return self.external_apis.weather_api_key
+
+    @property
+    def GA_PROPERTY_ID(self) -> Optional[str]:
+        """Get Google Analytics Property ID."""
+        return self.external_apis.ga_property_id
+
+    @property
+    def GA_CREDENTIALS_PATH(self) -> str:
+        """Get Google Analytics credentials path."""
+        return self.external_apis.ga_credentials_path
+
+    @property
+    def TICKETING_API_KEY(self) -> str:
+        """Get Ticketing System API key."""
+        return self.external_apis.ticketing_api_key
+
+    def load_yaml_config(self, config_path: str) -> Dict[str, Any]:
+        """
+        Load a YAML configuration file.
+
+        Args:
+            config_path: Path to the YAML file.
+
+        Returns:
+            Dictionary with the configuration.
+        """
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
+                return yaml.safe_load(f)
+        return {}
 
     def _load_yaml_configs(self) -> None:
         """

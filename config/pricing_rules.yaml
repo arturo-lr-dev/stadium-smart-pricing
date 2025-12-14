@@ -7,55 +7,55 @@
 competition_multipliers:
   # Liga
   LaLiga: 1.0
-  LaLiga_vs_top3: 1.15    # vs Real Madrid, Barcelona, Atlético
-  LaLiga_vs_top10: 1.1   # vs equipos en top 10
-  LaLiga_vs_bottom3: 0.95 # vs equipos en descenso
+  LaLiga_vs_top3: 2.5    # vs Real Madrid, Barcelona, Atlético
+  LaLiga_vs_top10: 1.5   # vs equipos en top 10
+  LaLiga_vs_bottom3: 0.8 # vs equipos en descenso
 
   # Copa del Rey
   Copa_del_Rey:
     eliminatorias_previas: 0.7
     octavos: 1.2
     cuartos: 1.5
-    semifinal: 1.15
-    final: 1.2
+    semifinal: 2.0
+    final: 3.0
 
   # Amistosos
   Amistoso: 0.6
   Amistoso_internacional: 0.8
 
   # Otros
-  UEFA_Europa_League: 1.1
-  UEFA_Champions_League: 1.2
-  Supercopa: 1.1
+  UEFA_Europa_League: 1.8
+  UEFA_Champions_League: 3.0
+  Supercopa: 2.0
 
 # ============================================================================
 # MULTIPLICADORES POR RIVAL ESPECÍFICO
 # ============================================================================
 rival_multipliers:
   # Equipos de máximo interés
-  "Real Madrid": 1.15
-  "FC Barcelona": 1.15
-  "Atlético Madrid": 1.1
+  "Real Madrid": 3.0
+  "FC Barcelona": 3.0
+  "Atlético Madrid": 2.5
 
   # Equipos de alto interés
-  "Real Betis": 1.15
-  "Sevilla FC": 1.15
-  "Real Sociedad": 1.1
-  "Athletic Club": 1.1
-  "Villarreal CF": 1.1
+  "Real Betis": 1.8
+  "Sevilla FC": 1.8
+  "Real Sociedad": 1.6
+  "Athletic Club": 1.6
+  "Villarreal CF": 1.5
 
   # Equipos de interés medio
-  "Valencia CF": 1.1
-  "Girona FC": 1.05
-  "CA Osasuna": 1.05
-  "Celta de Vigo": 1.05
-  "Getafe CF": 1.05
+  "Valencia CF": 1.2
+  "Girona FC": 1.2
+  "CA Osasuna": 1.2
+  "Celta de Vigo": 1.2
+  "Getafe CF": 1.2
 
   # Equipos de menor interés
-  "UD Las Palmas": 1.1
-  "Deportivo Alavés": 1.1
-  "RCD Espanyol": 1.1
-  "Rayo Vallecano": 1.1
+  "UD Las Palmas": 1.0
+  "Deportivo Alavés": 1.0
+  "RCD Espanyol": 1.0
+  "Rayo Vallecano": 1.0
 
   # Equipos en zona de descenso (ajuste dinámico)
   relegation_zone_penalty: 0.85
@@ -71,17 +71,17 @@ time_decay_factors:
   # Venta anticipada (descuentos)
   - min_days: 60
     max_days: 999
-    multiplier: 0.6
+    multiplier: 0.75
     description: "Early bird - Venta super anticipada"
-  
+
   - min_days: 30
     max_days: 59
-    multiplier: 0.7
+    multiplier: 0.85
     description: "Venta anticipada estándar"
 
   - min_days: 21
     max_days: 29
-    multiplier: 0.8
+    multiplier: 0.95
     description: "Venta anticipada tardía"
 
   # Venta regular
@@ -108,7 +108,7 @@ time_decay_factors:
 
   - min_days: 0
     max_days: 0
-    multiplier: 1.1
+    multiplier: 1.5
     description: "Día del partido - premium máximo"
 
 # ============================================================================
@@ -119,12 +119,12 @@ inventory_pressure_factors:
   # Ocupación baja - promover ventas
   - min_occupancy: 0.0
     max_occupancy: 0.20
-    multiplier: 0.6
+    multiplier: 0.80
     description: "Ocupación crítica baja - descuento agresivo"
 
   - min_occupancy: 0.20
     max_occupancy: 0.40
-    multiplier: 0.8
+    multiplier: 0.90
     description: "Ocupación baja - descuento moderado"
 
   - min_occupancy: 0.40
@@ -156,7 +156,7 @@ inventory_pressure_factors:
 
   - min_occupancy: 0.97
     max_occupancy: 1.0
-    multiplier: 1.15
+    multiplier: 1.75
     description: "Últimas entradas - precio máximo"
 
 # ============================================================================
@@ -210,6 +210,15 @@ special_conditions:
     season_closer: 1.2
     milestone_match: 1.4  # Ej: 1000 partidos en el estadio
     player_tribute: 1.3   # Homenaje a jugador
+
+  # Rendimiento del equipo (basado en últimos 5 partidos)
+  team_performance:
+    excellent: 1.15      # 4-5 victorias (80-100% victorias)
+    very_good: 1.08      # 3 victorias (60% victorias)
+    good: 1.02           # 2 victorias o racha positiva (40% victorias)
+    average: 1.0         # Rendimiento normal
+    poor: 0.95           # 1 victoria o menos (20% victorias)
+    very_poor: 0.90      # Sin victorias (0% victorias)
 
 # ============================================================================
 # RESTRICCIONES Y LÍMITES

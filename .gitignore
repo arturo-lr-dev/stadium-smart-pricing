@@ -122,3 +122,5 @@ reports/
 
 # Claude
 .claude/
+
+evaluation_results/

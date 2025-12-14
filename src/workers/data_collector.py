@@ -15,10 +15,12 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
+from src.core.config import get_settings
 from src.core.database import get_db_session
 from src.core.dependencies import get_redis_client
 from src.domain.models.db_models import ExternalDataDB
 from src.domain.repositories.match_repository import MatchRepository
+from src.integrations import FootballDataAPI, WeatherAPI, GoogleAnalyticsIntegration
 from src.workers.base_worker import BaseWorker
 
 logger = logging.getLogger(__name__)
@@ -28,9 +30,9 @@ class DataCollectorWorker(BaseWorker):
     """Worker that periodically collects data from external APIs.
 
     This worker:
-    - Fetches football statistics and team standings
-    - Fetches weather forecasts for match dates
-    - Fetches analytics data (page views, conversions)
+    - Fetches football statistics and team standings via FootballDataAPI
+    - Fetches weather forecasts for match dates via WeatherAPI
+    - Fetches analytics data (page views, conversions) via GoogleAnalyticsIntegration
     - Implements rate limiting to avoid API throttling
     - Caches data in Redis and PostgreSQL
     - Handles API errors with exponential backoff
@@ -39,9 +41,9 @@ class DataCollectorWorker(BaseWorker):
         collection_interval: Seconds between collection cycles
         db: Database session
         redis: Redis client
-        football_api: Football data API client (placeholder)
-        weather_api: Weather API client (placeholder)
-        analytics_api: Analytics API client (placeholder)
+        football_api: Football data API client (FootballDataAPI)
+        weather_api: Weather API client (WeatherAPI)
+        analytics_api: Analytics API client (GoogleAnalyticsIntegration)
     """
 
     def __init__(
@@ -60,7 +62,7 @@ class DataCollectorWorker(BaseWorker):
         self.db: Optional[Session] = None
         self.redis = None
 
-        # API clients (placeholders for now - Phase 10)
+        # API clients (initialized in _initialize_dependencies)
         self.football_api = None
         self.weather_api = None
         self.analytics_api = None
@@ -91,18 +93,35 @@ class DataCollectorWorker(BaseWorker):
 
         try:
             # Get database session
-            self.db = next(get_db_session())
+            self.db = get_db_session()
             logger.info("Database connection established")
 
             # Get Redis client
             self.redis = get_redis_client()
             logger.info("Redis connection established")
 
-            # Initialize API clients (Phase 10 - for now just log)
-            logger.info("API clients initialization deferred to Phase 10")
-            # self.football_api = FootballDataAPI()
-            # self.weather_api = WeatherAPI()
-            # self.analytics_api = GoogleAnalyticsIntegration()
+            # Initialize API clients (Phase 10)
+            settings = get_settings()
+
+            # Football Data API
+            if settings.FOOTBALL_DATA_API_KEY:
+                self.football_api = FootballDataAPI(api_key=settings.FOOTBALL_DATA_API_KEY)
+                logger.info("Football Data API client initialized")
+            else:
+                logger.warning("Football Data API key not configured, skipping initialization")
+
+            # Weather API
+            if settings.WEATHER_API_KEY:
+                self.weather_api = WeatherAPI(api_key=settings.WEATHER_API_KEY)
+                logger.info("Weather API client initialized")
+            else:
+                logger.warning("Weather API key not configured, skipping initialization")
+
+            # Google Analytics (uses mock mode if not configured)
+            self.analytics_api = GoogleAnalyticsIntegration(
+                property_id=settings.GA_PROPERTY_ID
+            )
+            logger.info(f"Google Analytics client initialized (mock_mode={self.analytics_api.mock_mode})")
 
         except Exception as e:
             logger.error(f"Failed to initialize dependencies: {e}", exc_info=True)
@@ -230,11 +249,12 @@ class DataCollectorWorker(BaseWorker):
         self.total_api_calls += 1
 
     def _collect_football_data(self) -> None:
-        """Collect football statistics and standings data.
-
-        This is a placeholder for Phase 10 implementation.
-        """
+        """Collect football statistics and standings data."""
         logger.info("Collecting football data...")
+
+        if not self.football_api:
+            logger.debug("Football API not initialized, skipping")
+            return
 
         try:
             # Check rate limit
@@ -242,26 +262,43 @@ class DataCollectorWorker(BaseWorker):
                 logger.warning("Skipping football data collection due to rate limit")
                 return
 
-            # Placeholder for actual API call
-            # In Phase 10, this will call the FootballDataAPI
-            logger.info("Football API integration deferred to Phase 10")
+            # Get current season
+            current_year = datetime.now().year
+            season = str(current_year)
 
-            # Example of what would happen:
-            # data = self.football_api.get_team_standings(league="LaLiga", season="2024")
-            # self._store_external_data("football", "team_standings_laliga", data)
-            # self._record_api_call("football")
-            # self.successful_api_calls += 1
+            # Collect La Liga standings
+            logger.info(f"Fetching La Liga standings for season {season}...")
+            standings = self.football_api.get_team_standings(league="PD", season=season)
+            self._store_external_data("football", f"standings_laliga_{season}", standings)
+            self._record_api_call("football")
+            self.successful_api_calls += 1
+            logger.info(f"Successfully collected La Liga standings ({len(standings.get('standings', []))} teams)")
+
+            # Get upcoming matches from DB to fetch team stats
+            match_repo = MatchRepository(self.db)
+            upcoming_matches = match_repo.get_upcoming(days=30)
+
+            # Collect stats for teams in upcoming matches (limit to avoid rate limiting)
+            teams_collected = set()
+            for match in upcoming_matches[:5]:  # Limit to 5 matches per cycle
+                for team_name in [match.home_team, match.away_team]:
+                    if team_name not in teams_collected:
+                        # Note: In production, you'd need team IDs from a mapping
+                        # For now, we just log the intent
+                        logger.debug(f"Would collect stats for team: {team_name}")
+                        teams_collected.add(team_name)
 
         except Exception as e:
             logger.error(f"Failed to collect football data: {e}", exc_info=True)
             self.failed_api_calls += 1
 
     def _collect_weather_data(self) -> None:
-        """Collect weather forecast data for upcoming matches.
-
-        This is a placeholder for Phase 10 implementation.
-        """
+        """Collect weather forecast data for upcoming matches."""
         logger.info("Collecting weather data...")
+
+        if not self.weather_api:
+            logger.debug("Weather API not initialized, skipping")
+            return
 
         try:
             # Check rate limit
@@ -269,35 +306,61 @@ class DataCollectorWorker(BaseWorker):
                 logger.warning("Skipping weather data collection due to rate limit")
                 return
 
-            # Get upcoming matches
+            # Get upcoming matches (limit to 5 days to stay within API forecast limits)
             match_repo = MatchRepository(self.db)
-            matches = match_repo.get_upcoming(days=7)
+            matches = match_repo.get_upcoming(days=5)
 
             logger.info(f"Found {len(matches)} upcoming matches for weather forecast")
 
-            # Placeholder for actual API calls
-            # In Phase 10, this will call the WeatherAPI for each match
-            logger.info("Weather API integration deferred to Phase 10")
+            # Get stadium location from settings
+            settings = get_settings()
+            stadium_lat = settings.stadium_latitude
+            stadium_lon = settings.stadium_longitude
 
-            # Example of what would happen:
-            # for match in matches:
-            #     forecast = self.weather_api.get_forecast(
-            #         lat=39.5937, lon=2.6499, date=match.date
-            #     )
-            #     self._store_external_data("weather", f"forecast_{match.id}", forecast)
-            #     self._record_api_call("weather")
-            #     self.successful_api_calls += 1
+            # Fetch weather forecast for each match
+            forecasts_collected = 0
+            for match in matches:
+                try:
+                    logger.info(f"Fetching weather forecast for match {match.id} on {match.date}")
+
+                    forecast = self.weather_api.get_forecast(
+                        lat=stadium_lat,
+                        lon=stadium_lon,
+                        date=match.date
+                    )
+
+                    # Store forecast data
+                    self._store_external_data("weather", f"forecast_{match.id}", forecast)
+                    self._record_api_call("weather")
+                    self.successful_api_calls += 1
+                    forecasts_collected += 1
+
+                    # Calculate weather factor for logging
+                    weather_factor = self.weather_api.calculate_weather_factor(forecast)
+                    logger.info(
+                        f"Weather forecast for {match.id}: "
+                        f"{forecast['temperature']}°C, "
+                        f"{forecast['precipitation_probability']:.0%} rain, "
+                        f"factor={weather_factor:.3f}"
+                    )
+
+                except Exception as e:
+                    logger.warning(f"Failed to fetch weather for match {match.id}: {e}")
+                    continue
+
+            logger.info(f"Successfully collected {forecasts_collected} weather forecasts")
 
         except Exception as e:
             logger.error(f"Failed to collect weather data: {e}", exc_info=True)
             self.failed_api_calls += 1
 
     def _collect_analytics_data(self) -> None:
-        """Collect analytics data (page views, conversions, etc.).
-
-        This is a placeholder for Phase 10 implementation.
-        """
+        """Collect analytics data (page views, conversions, etc.)."""
         logger.info("Collecting analytics data...")
+
+        if not self.analytics_api:
+            logger.debug("Analytics API not initialized, skipping")
+            return
 
         try:
             # Check rate limit
@@ -305,17 +368,47 @@ class DataCollectorWorker(BaseWorker):
                 logger.warning("Skipping analytics data collection due to rate limit")
                 return
 
-            # Placeholder for actual API call
-            # In Phase 10, this will call the GoogleAnalyticsIntegration
-            logger.info("Analytics API integration deferred to Phase 10")
+            # Get upcoming matches to collect analytics
+            match_repo = MatchRepository(self.db)
+            matches = match_repo.get_upcoming(days=30)
 
-            # Example of what would happen:
-            # data = self.analytics_api.get_page_views(
-            #     match_id="match123", date_range=(start_date, end_date)
-            # )
-            # self._store_external_data("analytics", f"pageviews_match123", data)
-            # self._record_api_call("analytics")
-            # self.successful_api_calls += 1
+            logger.info(f"Collecting analytics for {len(matches)} upcoming matches")
+
+            # Date range for analytics: last 7 days
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=7)
+            date_range = (start_date, end_date)
+
+            # Collect metrics for each match
+            metrics_collected = 0
+            for match in matches[:10]:  # Limit to 10 matches per cycle
+                try:
+                    logger.info(f"Fetching analytics for match {match.id}")
+
+                    # Get all demand metrics in one call
+                    metrics = self.analytics_api.get_demand_metrics(
+                        match_id=match.id,
+                        date_range=date_range
+                    )
+
+                    # Store metrics
+                    self._store_external_data("analytics", f"metrics_{match.id}", metrics)
+                    self._record_api_call("analytics")
+                    self.successful_api_calls += 1
+                    metrics_collected += 1
+
+                    logger.info(
+                        f"Analytics for {match.id}: "
+                        f"{metrics['page_views']} views, "
+                        f"{metrics['cart_additions']} cart adds, "
+                        f"{metrics['conversion_rate']:.2%} conversion"
+                    )
+
+                except Exception as e:
+                    logger.warning(f"Failed to fetch analytics for match {match.id}: {e}")
+                    continue
+
+            logger.info(f"Successfully collected analytics for {metrics_collected} matches")
 
         except Exception as e:
             logger.error(f"Failed to collect analytics data: {e}", exc_info=True)
@@ -330,19 +423,33 @@ class DataCollectorWorker(BaseWorker):
             data_value: Data to store
         """
         try:
-            # Store in PostgreSQL
-            external_data = ExternalDataDB(
-                source=source,
-                data_key=data_key,
-                data_value=data_value,
-                fetched_at=datetime.now(),
-                expires_at=datetime.now() + timedelta(hours=6)  # 6 hour TTL
-            )
+            # Generate unique ID from source and data_key
+            record_id = f"{source}:{data_key}"
 
-            self.db.add(external_data)
+            # Check if record exists
+            existing = self.db.query(ExternalDataDB).filter_by(id=record_id).first()
+
+            if existing:
+                # Update existing record
+                existing.data_value = data_value
+                existing.fetched_at = datetime.now()
+                existing.expires_at = datetime.now() + timedelta(hours=6)
+                existing.is_valid = True
+                logger.debug(f"Updated external data: {source}:{data_key}")
+            else:
+                # Create new record
+                external_data = ExternalDataDB(
+                    id=record_id,
+                    source=source,
+                    data_key=data_key,
+                    data_value=data_value,
+                    fetched_at=datetime.now(),
+                    expires_at=datetime.now() + timedelta(hours=6)
+                )
+                self.db.add(external_data)
+                logger.debug(f"Stored new external data: {source}:{data_key}")
+
             self.db.commit()
-
-            logger.debug(f"Stored external data: {source}:{data_key}")
 
             # Also cache in Redis for faster access
             cache_key = f"external:{source}:{data_key}"

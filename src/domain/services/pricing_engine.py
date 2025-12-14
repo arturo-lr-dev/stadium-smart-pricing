@@ -7,7 +7,7 @@ by combining rules, demand predictions, and inventory data.
 
 import logging
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
@@ -21,6 +21,7 @@ from src.domain.repositories.zone_repository import ZoneRepository
 from src.domain.services.demand_predictor import DemandPredictor
 from src.domain.services.inventory_manager import InventoryManager
 from src.domain.services.rules_engine import RulesEngine
+from src.integrations.weather_api import WeatherAPI
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ class PricingEngine:
         match_repository: MatchRepository,
         zone_repository: ZoneRepository,
         pricing_repository: PricingHistoryRepository,
+        weather_api: WeatherAPI,
         db_session: Session,
     ):
         """
@@ -58,6 +60,7 @@ class PricingEngine:
             match_repository: Repository for match operations
             zone_repository: Repository for zone operations
             pricing_repository: Repository for pricing history operations
+            weather_api: Weather API for fetching weather forecasts
             db_session: Database session for transactions
         """
         self.rules_engine = rules_engine
@@ -66,6 +69,7 @@ class PricingEngine:
         self.match_repo = match_repository
         self.zone_repo = zone_repository
         self.pricing_repo = pricing_repository
+        self.weather_api = weather_api
         self.db_session = db_session
 
         logger.info("PricingEngine initialized successfully")
@@ -265,8 +269,8 @@ class PricingEngine:
         # Get special conditions (derby, holiday, etc.)
         special_conditions = self.rules_engine.get_special_multipliers(match)
 
-        # Weather factor (placeholder - will be integrated in Phase 10)
-        weather_factor = 1.0
+        # Get weather factor from weather API and rules engine
+        weather_factor = self._get_weather_factor(match)
 
         factors = PricingFactors(
             demand_score=demand_score,
@@ -285,6 +289,79 @@ class PricingEngine:
         )
 
         return factors
+
+    def _get_weather_factor(self, match: Match) -> float:
+        """
+        Get weather factor for a match based on weather forecast.
+
+        Args:
+            match: Match object
+
+        Returns:
+            Weather factor multiplier (from pricing rules)
+        """
+        try:
+            # Get weather forecast for the match
+            # Coordinates for Palma de Mallorca (Son Moix stadium)
+            lat, lon = 39.5925, 2.7301
+
+            weather_data = self.weather_api.get_forecast(lat=lat, lon=lon, date=match.date)
+
+            # Convert weather data to condition category
+            weather_condition = self._categorize_weather(weather_data)
+
+            # Get multiplier from rules engine based on condition
+            factor = self.rules_engine.get_weather_factor(weather_condition)
+
+            logger.debug(
+                f"Weather factor for match {match.id}: {factor} (condition: {weather_condition})"
+            )
+
+            return factor
+
+        except Exception as e:
+            # If weather API fails, use default "good" weather
+            logger.warning(
+                f"Failed to get weather data for match {match.id}: {e}. Using default weather factor."
+            )
+            return self.rules_engine.get_weather_factor("good")
+
+    def _categorize_weather(self, weather_data: Dict) -> str:
+        """
+        Categorize weather data into condition levels for pricing rules.
+
+        Args:
+            weather_data: Weather data from WeatherAPI
+
+        Returns:
+            Weather condition: "excellent", "good", "fair", or "poor"
+        """
+        temp = weather_data.get("temperature", 20.0)
+        rain_prob = weather_data.get("precipitation_probability", 0.0)
+        wind_speed = weather_data.get("wind_speed", 0.0)
+
+        # Excellent weather: ideal temperature, no rain, light wind
+        if 18 <= temp <= 25 and rain_prob < 0.1 and wind_speed < 5:
+            return "excellent"
+
+        # Poor weather: extreme conditions
+        if (
+            temp < 10 or temp > 30  # Very cold or very hot
+            or rain_prob > 0.7  # Very likely rain
+            or wind_speed > 15  # Very windy
+        ):
+            return "poor"
+
+        # Fair weather: some adverse conditions
+        if (
+            temp < 15 or temp > 28  # Cold or hot
+            or rain_prob > 0.4  # Likely rain
+            or wind_speed > 10  # Windy
+        ):
+            return "fair"
+
+        # Good weather: everything else
+        return "good"
 
     def should_update_price(
         self,

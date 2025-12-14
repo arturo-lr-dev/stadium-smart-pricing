@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -251,6 +252,22 @@
             font-weight: 700;
         }
 
+        .status-card .value.factor-high {
+            color: #22543d;
+        }
+
+        .status-card .value.factor-medium {
+            color: #7c2d12;
+        }
+
+        .status-card .value.factor-low {
+            color: #742a2a;
+        }
+
+        .status-card .value.factor-neutral {
+            color: #2d3748;
+        }
+
         .status-card .subvalue {
             color: #718096;
             font-size: 0.9rem;
@@ -416,6 +433,74 @@
             color: #2d3748;
         }
 
+        .factors-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .factors-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #4a5568;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .factors-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        .factor-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .factor-label {
+            font-weight: 500;
+            color: #718096;
+        }
+
+        .factor-value {
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .factor-value.high {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .factor-value.medium {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+
+        .factor-value.low {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .factor-value.neutral {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .special-conditions {
+            margin-top: 10px;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -434,7 +519,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .error-message {
@@ -469,12 +556,21 @@
                 grid-template-columns: repeat(2, 1fr);
             }
 
+            .status-card .value {
+                font-size: 1.4rem;
+            }
+
+            .status-card h3 {
+                font-size: 0.75rem;
+            }
+
             .zones-grid {
                 grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -486,14 +582,29 @@
             <h2>Match Configuration</h2>
             <form id="configForm">
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label for="opponent">Opponent Team</label>
-                        <input type="text" id="opponent" value="FC Barcelona" required>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="matchMode">Simulation Mode</label>
+                        <select id="matchMode" required>
+                            <option value="real">Use Real Future Match</option>
+                            <option value="custom">Custom Simulation</option>
+                        </select>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" id="realMatchGroup" style="grid-column: 1 / -1;">
+                        <label for="realMatch">Select Match</label>
+                        <select id="realMatch">
+                            <option value="">Loading matches...</option>
+                        </select>
+                        <small id="matchInfo"></small>
+                    </div>
+                    <div class="form-group" id="opponentGroup">
+                        <label for="opponent">Opponent Team</label>
+                        <input type="text" id="opponent" value="FC Barcelona">
+                    </div>
+
+                    <div class="form-group" id="competitionGroup">
                         <label for="competition">Competition</label>
-                        <select id="competition" required>
+                        <select id="competition">
                             <option value="la_liga">La Liga</option>
                             <option value="copa_del_rey">Copa del Rey</option>
                             <option value="champions_league">Champions League</option>
@@ -502,9 +613,9 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" id="daysGroup">
                         <label for="daysUntilMatch">Days Until Match</label>
-                        <input type="number" id="daysUntilMatch" min="1" max="90" value="30" required>
+                        <input type="number" id="daysUntilMatch" min="1" max="90" value="30">
                         <small>Number of days from sale start to match day</small>
                     </div>
 
@@ -514,7 +625,7 @@
                         <small>0.1 (very low) to 1.0 (very high)</small>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" id="derbyGroup">
                         <label for="isDerby">Derby Match</label>
                         <select id="isDerby">
                             <option value="false">No</option>
@@ -579,6 +690,56 @@
                 </div>
             </div>
 
+            <h3 style="color: white; margin: 30px 0 15px 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px;">Global Pricing Factors</h3>
+            <div class="current-status" style="margin-top: 0;">
+                <div class="status-card" style="border-left-color: #667eea;">
+                    <h3>Time Factor</h3>
+                    <div class="value" id="timeFactor">1.0</div>
+                    <div class="subvalue">Urgency multiplier</div>
+                </div>
+                <div class="status-card" style="border-left-color: #667eea;">
+                    <h3>Competition Factor</h3>
+                    <div class="value" id="competitionFactor">1.0</div>
+                    <div class="subvalue">Match importance</div>
+                </div>
+                <div class="status-card" style="border-left-color: #667eea;">
+                    <h3>Rival Factor</h3>
+                    <div class="value" id="rivalFactor">1.0</div>
+                    <div class="subvalue">Opponent strength</div>
+                </div>
+                <div class="status-card" style="border-left-color: #667eea;">
+                    <h3>Weather Factor</h3>
+                    <div class="value" id="weatherFactor">1.0</div>
+                    <div class="subvalue">Weather conditions</div>
+                </div>
+            </div>
+
+            <h3 style="color: white; margin: 20px 0 15px 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px;">Special Conditions</h3>
+            <div class="current-status" style="margin-top: 0;">
+                <div class="status-card" style="border-left-color: #764ba2;">
+                    <h3>Weekday</h3>
+                    <div class="value" id="weekdayFactor">1.0</div>
+                </div>
+                <div class="status-card" style="border-left-color: #764ba2;">
+                    <h3>Derby Match</h3>
+                    <div class="value" id="derbyFactor">1.0</div>
+                </div>
+                <div class="status-card" style="border-left-color: #764ba2;">
+                    <h3>Holiday</h3>
+                    <div class="value" id="holidayFactor">1.0</div>
+                </div>
+                <div class="status-card" style="border-left-color: #764ba2;">
+                    <h3>Match Time</h3>
+                    <div class="value" id="matchTimeFactor">1.0</div>
+                </div>
+                <div class="status-card" style="border-left-color: #764ba2;">
+                    <h3>Team Performance</h3>
+                    <div class="value" id="performanceFactor">1.0</div>
+                </div>
+            </div>
+
+            <h3 style="color: white; margin: 20px 0 15px 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px;">Zones Performance</h3>
+
             <div id="zonesGrid" class="zones-grid">
                 <!-- Zone cards will be populated here -->
             </div>
@@ -599,6 +760,7 @@
         let isPlaying = false;
         let playInterval = null;
         let playSpeed = 1000; // ms per step
+        let availableMatches = [];
 
         // DOM Elements
         const configForm = document.getElementById('configForm');
@@ -609,6 +771,33 @@
         const pauseBtn = document.getElementById('pauseBtn');
         const resetBtn = document.getElementById('resetBtn');
         const speedSelect = document.getElementById('speedSelect');
+        const matchMode = document.getElementById('matchMode');
+        const realMatchGroup = document.getElementById('realMatchGroup');
+        const realMatchSelect = document.getElementById('realMatch');
+        const matchInfo = document.getElementById('matchInfo');
+
+        // Custom simulation fields
+        const opponentGroup = document.getElementById('opponentGroup');
+        const competitionGroup = document.getElementById('competitionGroup');
+        const daysGroup = document.getElementById('daysGroup');
+        const derbyGroup = document.getElementById('derbyGroup');
+
+        // Initialize
+        loadAvailableMatches();
+        updateFormVisibility();
+
+        // Match mode change handler
+        matchMode.addEventListener('change', () => updateFormVisibility());
+
+        // Real match selection handler
+        realMatchSelect.addEventListener('change', () => {
+            const selectedMatch = availableMatches.find(m => m.id === realMatchSelect.value);
+            if (selectedMatch) {
+                matchInfo.textContent = `${selectedMatch.home_team} vs ${selectedMatch.away_team} • ${new Date(selectedMatch.date).toLocaleDateString('es-ES')} • ${selectedMatch.days_until_match} days away`;
+            } else {
+                matchInfo.textContent = '';
+            }
+        });
 
         // Form submission
         configForm.addEventListener('submit', async (e) => {
@@ -628,12 +817,110 @@
             }
         });
 
+        async function loadAvailableMatches() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/simulator/available-matches`);
+                if (!response.ok) {
+                    throw new Error('Failed to load matches');
+                }
+
+                const result = await response.json();
+                availableMatches = result.data;
+
+                // Populate dropdown
+                realMatchSelect.innerHTML = '<option value="">Select a match...</option>';
+                availableMatches.forEach(match => {
+                    const option = document.createElement('option');
+                    option.value = match.id;
+                    option.textContent = `${match.home_team} vs ${match.away_team} (${new Date(match.date).toLocaleDateString('es-ES')})`;
+                    realMatchSelect.appendChild(option);
+                });
+
+                if (availableMatches.length === 0) {
+                    realMatchSelect.innerHTML = '<option value="">No matches available</option>';
+                }
+            } catch (error) {
+                console.error('Error loading matches:', error);
+                realMatchSelect.innerHTML = '<option value="">Error loading matches</option>';
+            }
+        }
+
+        function updateFormVisibility() {
+            const mode = matchMode.value;
+            const daysInput = document.getElementById('daysUntilMatch');
+
+            if (mode === 'real') {
+                // Show real match selector
+                realMatchGroup.style.display = 'block';
+                // Hide custom fields
+                opponentGroup.style.display = 'none';
+                competitionGroup.style.display = 'none';
+                derbyGroup.style.display = 'none';
+                // Days can be optionally overridden
+                daysGroup.querySelector('label').textContent = 'Override Days (optional)';
+                daysGroup.querySelector('small').textContent = 'Leave empty to use actual days until match';
+                // Clear the days input to use actual match days
+                daysInput.value = '';
+                daysInput.required = false;
+            } else {
+                // Hide real match selector
+                realMatchGroup.style.display = 'none';
+                // Show custom fields
+                opponentGroup.style.display = 'block';
+                competitionGroup.style.display = 'block';
+                derbyGroup.style.display = 'block';
+                // Days is required for custom
+                daysGroup.querySelector('label').textContent = 'Days Until Match';
+                daysGroup.querySelector('small').textContent = 'Number of days from sale start to match day';
+                // Set default value for custom mode
+                if (!daysInput.value) {
+                    daysInput.value = '30';
+                }
+                daysInput.required = true;
+            }
+        }
+
         async function generateTimeline() {
-            const opponent = document.getElementById('opponent').value;
-            const competition = document.getElementById('competition').value;
-            const daysUntilMatch = parseInt(document.getElementById('daysUntilMatch').value);
-            const baseDemand = parseFloat(document.getElementById('baseDemand').value);
-            const isDerby = document.getElementById('isDerby').value === 'true';
+            const mode = matchMode.value;
+
+            let requestBody;
+
+            if (mode === 'real') {
+                // Real match mode
+                const matchId = realMatchSelect.value;
+                if (!matchId) {
+                    errorMessage.textContent = 'Please select a match';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+
+                const daysOverride = document.getElementById('daysUntilMatch').value;
+                requestBody = {
+                    match_id: matchId,
+                    base_demand: parseFloat(document.getElementById('baseDemand').value)
+                };
+
+                if (daysOverride) {
+                    requestBody.days_until_match = parseInt(daysOverride);
+                }
+            } else {
+                // Custom simulation mode
+                const opponent = document.getElementById('opponent').value;
+                const competition = document.getElementById('competition').value;
+                const daysUntilMatch = parseInt(document.getElementById('daysUntilMatch').value);
+                const baseDemand = parseFloat(document.getElementById('baseDemand').value);
+                const isDerby = document.getElementById('isDerby').value === 'true';
+
+                requestBody = {
+                    opponent,
+                    competition,
+                    days_until_match: daysUntilMatch,
+                    base_demand: baseDemand,
+                    is_derby: isDerby
+                };
+            }
+
+
 
             // Show loading
             loading.style.display = 'block';
@@ -646,28 +933,35 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        opponent,
-                        competition,
-                        days_until_match: daysUntilMatch,
-                        base_demand: baseDemand,
-                        is_derby: isDerby
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.message || 'Failed to generate timeline');
+                    throw new Error(error.detail || error.message || 'Failed to generate timeline');
                 }
 
                 const result = await response.json();
                 timelineData = result.data;
 
-                // Update match title
-                document.getElementById('matchTitle').textContent = `RCD Mallorca vs ${opponent}`;
-                document.getElementById('matchDetails').textContent =
-                    `${competition.replace('_', ' ')} • ${daysUntilMatch} days simulation${isDerby ? ' • Derby Match' : ''}`;
+                // Get match info for display
+                let matchTitle, matchDetails;
+                if (mode === 'real') {
+                    const selectedMatch = availableMatches.find(m => m.id === realMatchSelect.value);
+                    matchTitle = `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
+                    matchDetails = `${selectedMatch.competition} • Real Match • ${new Date(selectedMatch.date).toLocaleDateString('es-ES')}`;
+                } else {
+                    const opponent = document.getElementById('opponent').value;
+                    const competition = document.getElementById('competition').value;
+                    const isDerby = document.getElementById('isDerby').value === 'true';
+                    const daysUntilMatch = parseInt(document.getElementById('daysUntilMatch').value);
+                    matchTitle = `RCD Mallorca vs ${opponent}`;
+                    matchDetails = `${competition.replace('_', ' ')} • ${daysUntilMatch} days simulation${isDerby ? ' • Derby Match' : ''}`;
+                }
 
+                // Update match title
+                document.getElementById('matchTitle').textContent = matchTitle;
+                document.getElementById('matchDetails').textContent = matchDetails;
                 // Reset and show timeline
                 currentStep = 0;
                 updateDisplay();
@@ -680,6 +974,36 @@
             } finally {
                 loading.style.display = 'none';
             }
+        }
+
+        function getFactorColorClass(value) {
+            // Determine color class based on value
+            if (value > 1.2) {
+                return 'factor-high';
+            } else if (value > 1.0) {
+                return 'factor-medium';
+            } else if (value < 0.9) {
+                return 'factor-low';
+            }
+            return 'factor-neutral';
+        }
+
+        function createFactorItem(label, value) {
+            // Remove 'factor-' prefix for zone cards
+            const colorClass = getFactorColorClass(value).replace('factor-', '');
+
+            return `
+                <div class="factor-item">
+                    <span class="factor-label">${label}:</span>
+                    <span class="factor-value ${colorClass}">${value}</span>
+                </div>
+            `;
+        }
+
+        function setFactorValue(elementId, value) {
+            const element = document.getElementById(elementId);
+            element.textContent = value;
+            element.className = 'value ' + getFactorColorClass(value);
         }
 
         function updateDisplay() {
@@ -702,6 +1026,20 @@
             document.getElementById('overallOccupancy').textContent = `${(step.overall_occupancy * 100).toFixed(1)}%`;
             document.getElementById('totalRevenue').textContent = `€${step.total_revenue.toLocaleString()}`;
             document.getElementById('avgPrice').textContent = `Avg: €${step.avg_price.toFixed(2)}`;
+
+            // Update common factors (from first zone, as they're the same for all zones)
+            if (step.zones.length > 0) {
+                const factors = step.zones[0].factors;
+                setFactorValue('timeFactor', factors.time_factor);
+                setFactorValue('competitionFactor', factors.competition_factor);
+                setFactorValue('rivalFactor', factors.rival_factor);
+                setFactorValue('weatherFactor', factors.weather_factor);
+                setFactorValue('weekdayFactor', factors.special_conditions.weekday);
+                setFactorValue('derbyFactor', factors.special_conditions.derby);
+                setFactorValue('holidayFactor', factors.special_conditions.holiday);
+                setFactorValue('matchTimeFactor', factors.special_conditions.match_time);
+                setFactorValue('performanceFactor', factors.special_conditions.team_performance);
+            }
 
             // Update zones
             const zonesGrid = document.getElementById('zonesGrid');
@@ -749,24 +1087,16 @@
                                 <span class="stat-value">€${zone.revenue.toLocaleString()}</span>
                             </div>
                             <div class="stat-item">
-                                <span class="stat-label">Demand:</span>
-                                <span class="stat-value">${zone.factors.demand_score}</span>
+                                <span class="stat-label">New Sales:</span>
+                                <span class="stat-value">${zone.new_sales} tickets</span>
                             </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Time:</span>
-                                <span class="stat-value">${zone.factors.time_factor}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Inventory:</span>
-                                <span class="stat-value">${zone.factors.inventory_factor}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Competition:</span>
-                                <span class="stat-value">${zone.factors.competition_factor}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Rival:</span>
-                                <span class="stat-value">${zone.factors.rival_factor || 'N/A'}</span>
+                        </div>
+
+                        <div class="factors-section">
+                            <div class="factors-title">Zone-Specific Factors</div>
+                            <div class="factors-grid">
+                                ${createFactorItem('Demand Score', zone.factors.demand_score)}
+                                ${createFactorItem('Inventory', zone.factors.inventory_factor)}
                             </div>
                         </div>
                     </div>
@@ -809,4 +1139,5 @@
         }
     </script>
 </body>
+
 </html>

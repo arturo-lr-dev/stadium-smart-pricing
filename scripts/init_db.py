@@ -32,6 +32,7 @@ from src.domain.models import (  # noqa: F401
     MatchDB,
     PricingHistoryDB,
     SaleDB,
+    TeamDB,
     ZoneDB,
 )
 

@@ -178,10 +178,12 @@ def get_current_settings() -> Settings:
 # Estos serán implementados en fases posteriores cuando tengamos los servicios
 
 
-@lru_cache()
-def get_rules_engine():
+def get_rules_engine(db: Session = Depends(get_db)):
     """
     Dependency para obtener el RulesEngine.
+
+    Args:
+        db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
         Instancia de RulesEngine
@@ -194,7 +196,11 @@ def get_rules_engine():
     """
     from src.domain.services.rules_engine import RulesEngine
 
-    return RulesEngine(config_path="config/pricing_rules.yaml")
+    return RulesEngine(
+        config_path="config/pricing_rules.yaml",
+        football_api=get_football_api(),
+        db_session=db,
+    )
 
 
 def get_pricing_engine(db: Session = Depends(get_db)):
@@ -216,12 +222,13 @@ def get_pricing_engine(db: Session = Depends(get_db)):
     from src.domain.services.pricing_engine import PricingEngine
 
     return PricingEngine(
-        rules_engine=get_rules_engine(),
+        rules_engine=get_rules_engine(db),
         demand_predictor=get_demand_predictor(),
         inventory_manager=get_inventory_manager(db),
         match_repository=get_match_repository(db),
         zone_repository=get_zone_repository(db),
         pricing_repository=get_pricing_repository(db),
+        weather_api=get_weather_api(),
         db_session=db,
     )
 
@@ -247,6 +254,44 @@ def get_demand_predictor():
     from src.domain.services.demand_predictor import DemandPredictor
 
     return DemandPredictor()
+
+
+@lru_cache()
+def get_weather_api():
+    """
+    Dependency para obtener el WeatherAPI.
+
+    Returns:
+        Instancia de WeatherAPI
+
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/weather/forecast")
+        >>> def get_forecast(api = Depends(get_weather_api)):
+        >>>     return api.get_forecast(lat=39.59, lon=2.73, date=match.date)
+    """
+    from src.integrations.weather_api import WeatherAPI
+
+    return WeatherAPI()
+
+
+@lru_cache()
+def get_football_api():
+    """
+    Dependency para obtener el FootballDataAPI.
+
+    Returns:
+        Instancia de FootballDataAPI
+
+    Example:
+        >>> from fastapi import Depends
+        >>> @app.get("/team/stats")
+        >>> def get_stats(api = Depends(get_football_api)):
+        >>>     return api.get_team_stats(team_id="123")
+    """
+    from src.integrations.football_data import FootballDataAPI
+
+    return FootballDataAPI()
 
 
 def get_inventory_manager(db: Session = Depends(get_db)):
