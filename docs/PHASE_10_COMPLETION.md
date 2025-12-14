@@ -351,8 +351,63 @@ real_inventory = ticketing.get_available_inventory(match_id)
 
 ### Modified Files
 1. `src/integrations/__init__.py` - Added exports
-2. `src/core/config.py` - Added ExternalAPIsSettings
-3. `.env.example` - Added new environment variables
+2. `src/core/config.py` - Added ExternalAPIsSettings and convenience properties
+3. `.env.example` - Added new environment variables for all APIs
+4. `src/workers/data_collector.py` - Integrated all Phase 10 external APIs
+5. `docs/IMPLEMENTATION_PLAN.md` - Marked Phase 10 as completed
+
+## Integration with DataCollectorWorker
+
+**Status**: ✅ COMPLETED
+
+The DataCollectorWorker has been successfully integrated with all Phase 10 external APIs.
+
+### Implementation Details
+
+**File**: `src/workers/data_collector.py`
+
+#### Football Data API Integration
+- **Initialization**: Client created if `FOOTBALL_DATA_API_KEY` is configured
+- **Collection**: Fetches La Liga standings for current season each cycle
+- **Storage**: Stores standings data with season-specific keys
+- **Rate Limiting**: Respects 100 calls/hour limit
+
+#### Weather API Integration
+- **Initialization**: Client created if `WEATHER_API_KEY` is configured
+- **Collection**: Fetches forecasts for upcoming matches (5 days ahead)
+- **Data**: Temperature, precipitation, wind speed, weather condition
+- **Storage**: Stores per-match forecast data with weather factors
+
+#### Google Analytics Integration
+- **Initialization**: Always created (uses mock mode if not configured)
+- **Collection**: Fetches metrics for upcoming matches (30 days)
+- **Metrics**: Page views, cart additions, abandonments, conversion rate
+- **Limits**: 10 matches per cycle to avoid rate limiting
+
+### Worker Behavior
+
+**Collection Cycle** (every hour by default):
+1. ✅ Collects football standings
+2. ✅ Collects weather forecasts for 5 upcoming matches
+3. ✅ Collects analytics for 10 upcoming matches
+4. ✅ Stores all data in PostgreSQL and Redis
+5. ✅ Sleeps until next cycle
+
+**Error Handling**:
+- Graceful degradation if API keys not configured
+- Per-match error handling (one failure doesn't stop collection)
+- Exponential backoff on repeated errors
+- Detailed logging of successes and failures
+
+**Example Log Output**:
+```
+INFO: Football Data API client initialized
+INFO: Fetching La Liga standings for season 2025...
+INFO: Successfully collected La Liga standings (20 teams)
+INFO: Fetching weather forecast for match match_123 on 2025-12-20
+INFO: Weather forecast for match_123: 18°C, 20% rain, factor=1.000
+INFO: Analytics for match_123: 1250 views, 187 cart adds, 15.0% conversion
+```
 
 ## Next Steps
 
@@ -363,12 +418,7 @@ real_inventory = ticketing.get_available_inventory(match_id)
    - Enable distributed caching across workers
    - Implement cache warming strategies
 
-2. **Data Collection Worker** (Already in Phase 9)
-   - Enhance worker to use these integrations
-   - Schedule periodic data collection
-   - Store external data in database
-
-3. **ML Feature Engineering**
+2. **ML Feature Engineering**
    - Add weather features to demand model
    - Add analytics metrics as demand signals
    - Add team form features from football API
