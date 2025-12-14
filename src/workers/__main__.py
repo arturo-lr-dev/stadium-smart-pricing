@@ -159,7 +159,7 @@ def main() -> int:
     settings = get_settings()
     logger.info("=" * 80)
     logger.info("Smart Pricing System - Background Workers")
-    logger.info(f"Environment: {settings.app.environment}")
+    logger.info(f"Environment: {settings.environment}")
     logger.info(f"Worker: {args.worker}")
     logger.info("=" * 80)
 

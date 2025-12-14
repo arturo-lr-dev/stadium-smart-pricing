@@ -154,7 +154,7 @@ class ContextLogger(logging.Logger):
         super()._log(level, msg, args, exc_info, extra, stack_info, stacklevel + 1)
 
 
-def setup_logging() -> None:
+def setup_logging(level: Optional[str] = None) -> None:
     """
     Configura el sistema de logging de la aplicación.
 
@@ -164,9 +164,14 @@ def setup_logging() -> None:
     - Handlers (console, file)
     - Rotación de archivos
 
+    Args:
+        level: Nivel de logging opcional que sobrescribe el valor en settings.
+               Valores válidos: DEBUG, INFO, WARNING, ERROR, CRITICAL
+
     Example:
         >>> from src.core.logging import setup_logging
         >>> setup_logging()
+        >>> setup_logging(level="DEBUG")
     """
     settings = get_settings()
 
@@ -183,9 +188,12 @@ def setup_logging() -> None:
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
 
+    # Determinar nivel de log (usa el parámetro si se proporciona, sino el de settings)
+    log_level = level if level is not None else settings.logging.level
+
     # Configurar root logger
     root_logger = logging.getLogger()
-    root_logger.setLevel(getattr(logging, settings.logging.level.upper()))
+    root_logger.setLevel(getattr(logging, log_level.upper()))
     root_logger.addHandler(console_handler)
 
     # Configurar file handler si está especificado
@@ -212,7 +220,7 @@ def setup_logging() -> None:
         "Logging system initialized",
         environment=settings.environment,
         format=settings.logging.format,
-        log_level=settings.logging.level,
+        log_level=log_level,
     )
 
 

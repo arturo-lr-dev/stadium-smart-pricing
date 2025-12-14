@@ -91,7 +91,7 @@ class DataCollectorWorker(BaseWorker):
 
         try:
             # Get database session
-            self.db = next(get_db_session())
+            self.db = get_db_session()
             logger.info("Database connection established")
 
             # Get Redis client
