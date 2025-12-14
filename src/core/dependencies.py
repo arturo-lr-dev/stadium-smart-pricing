@@ -286,7 +286,7 @@ def get_football_api():
     Dependency para obtener el FootballDataAPI.
 
     Returns:
-        Instancia de FootballDataAPI
+        Instancia de FootballDataAPI with ExternalDataCacheStrategy
 
     Example:
         >>> from fastapi import Depends
@@ -294,9 +294,13 @@ def get_football_api():
         >>> def get_stats(api = Depends(get_football_api)):
         >>>     return api.get_team_stats(team_id="123")
     """
+    from src.core.cache_strategies import get_external_data_cache
     from src.integrations.football_data import FootballDataAPI
 
-    return FootballDataAPI()
+    # Use external data cache strategy (6-hour TTL for football stats)
+    cache_strategy = get_external_data_cache()
+
+    return FootballDataAPI(cache_strategy=cache_strategy)
 
 
 def get_inventory_manager(db: Session = Depends(get_db)):
