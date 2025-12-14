@@ -173,30 +173,79 @@ class RulesEngine:
         logger.debug(f"Using default competition multiplier for {competition}: 1.0")
         return 1.0
 
-    def get_rival_multiplier(self, rival_team: str, is_relegation_zone: bool = False) -> float:
+    def get_rival_multiplier(
+        self,
+        rival_team: str,
+        is_relegation_zone: bool = False,
+        competition: str = "LaLiga",
+        season: Optional[str] = None
+    ) -> float:
         """
         Get pricing multiplier for a rival team.
 
+        This method first checks if the Football Data API is available to get
+        the rival's current position in the standings. If available, it applies
+        dynamic multipliers based on position. Otherwise, it falls back to
+        static multipliers from the config.
+
         Args:
             rival_team: Name of the rival team
-            is_relegation_zone: Whether rival is in relegation zone
+            is_relegation_zone: Whether rival is in relegation zone (manual override)
+            competition: Competition name (e.g., "LaLiga")
+            season: Season year (e.g., "2024"). If None, uses current year.
 
         Returns:
             Rival multiplier (default: 1.0)
         """
         multipliers = self.rules.get("rival_multipliers", {})
 
-        # Check for specific team multiplier
+        # Check for specific team multiplier first (highest priority)
         if rival_team in multipliers:
             multiplier = float(multipliers[rival_team])
-            logger.debug(f"Rival multiplier for {rival_team}: {multiplier}")
+            logger.debug(f"Static rival multiplier for {rival_team}: {multiplier}")
             return multiplier
 
-        # Apply relegation zone penalty if applicable
+        # Try to get dynamic multiplier based on current standings from API
+        if self.football_api and competition == "LaLiga":
+            try:
+                rival_position = self._get_team_position(rival_team, competition, season)
+
+                if rival_position:
+                    logger.debug(f"Rival {rival_team} is at position {rival_position}")
+
+                    # Apply dynamic multipliers based on position
+                    if rival_position <= 3:
+                        # Top 3 teams (likely Real Madrid, Barcelona, Atlético)
+                        multiplier = 2.5
+                        logger.debug(f"Top 3 rival multiplier for {rival_team}: {multiplier}")
+                        return multiplier
+                    elif rival_position <= 10:
+                        # Top 10 teams (strong mid-table teams)
+                        multiplier = 1.5
+                        logger.debug(f"Top 10 rival multiplier for {rival_team}: {multiplier}")
+                        return multiplier
+                    elif rival_position >= 18:
+                        # Bottom 3 teams (relegation zone)
+                        multiplier = float(multipliers.get("relegation_zone_penalty", 0.85))
+                        logger.debug(f"Bottom 3 rival multiplier for {rival_team}: {multiplier}")
+                        return multiplier
+                    else:
+                        # Mid-table teams (11-17)
+                        multiplier = 1.1
+                        logger.debug(f"Mid-table rival multiplier for {rival_team}: {multiplier}")
+                        return multiplier
+
+            except Exception as e:
+                logger.warning(
+                    f"Failed to get dynamic rival multiplier from API for {rival_team}: {e}. "
+                    "Falling back to manual check."
+                )
+
+        # Apply relegation zone penalty if manually specified
         if is_relegation_zone:
             multiplier = float(multipliers.get("relegation_zone_penalty", 0.85))
             logger.debug(
-                f"Relegation zone penalty for {rival_team}: {multiplier}"
+                f"Manual relegation zone penalty for {rival_team}: {multiplier}"
             )
             return multiplier
 
@@ -464,6 +513,79 @@ class RulesEngine:
                 f"Failed to calculate team performance for {team_name}: {e}. Using neutral multiplier."
             )
             return 1.0
+
+    def _get_team_position(
+        self,
+        team_name: str,
+        competition: str = "LaLiga",
+        season: Optional[str] = None
+    ) -> Optional[int]:
+        """
+        Get team's current position in the standings.
+
+        Args:
+            team_name: Name of the team
+            competition: Competition name (e.g., "LaLiga")
+            season: Season year. If None, uses current year.
+
+        Returns:
+            Team position (1-20 for LaLiga) or None if not found
+        """
+        if not self.football_api:
+            logger.debug("No Football API available for position lookup")
+            return None
+
+        try:
+            # Map competition name to API league code
+            competition_mapping = {
+                "LaLiga": "PD",  # Primera División
+                "Copa_del_Rey": "CLI",
+                "UEFA_Champions_League": "CL",
+                "UEFA_Europa_League": "EL",
+            }
+
+            league_code = competition_mapping.get(competition)
+            if not league_code:
+                logger.debug(f"No league code mapping for competition: {competition}")
+                return None
+
+            # Use current year if season not specified
+            if not season:
+                from datetime import datetime
+                season = str(datetime.now().year)
+
+            # Get standings from API
+            standings_data = self.football_api.get_team_standings(league_code, season)
+
+            # Extract standings table
+            standings = standings_data.get("standings", [])
+            if not standings:
+                logger.warning(f"No standings data found for {competition} {season}")
+                return None
+
+            # The API returns standings in a nested structure
+            # standings[0] is usually the main table
+            main_table = standings[0] if isinstance(standings, list) else standings
+            table = main_table.get("table", [])
+
+            # Find team in the table
+            for entry in table:
+                team = entry.get("team", {})
+                if team.get("name") == team_name:
+                    position = entry.get("position")
+                    logger.info(
+                        f"Found {team_name} at position {position} in {competition} {season}"
+                    )
+                    return position
+
+            logger.warning(f"Team {team_name} not found in {competition} standings")
+            return None
+
+        except Exception as e:
+            logger.warning(
+                f"Failed to get team position for {team_name} in {competition}: {e}"
+            )
+            return None
 
     def _get_team_id_from_name(self, team_name: str) -> Optional[str]:
         """

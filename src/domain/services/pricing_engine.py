@@ -263,8 +263,11 @@ class PricingEngine:
         # Get competition factor from rules engine
         competition_factor = self.rules_engine.get_competition_multiplier(match.competition)
 
-        # Get rival multiplier from rules engine
-        rival_factor = self.rules_engine.get_rival_multiplier(match.away_team)
+        # Get rival multiplier from rules engine (with competition context for API lookup)
+        rival_factor = self.rules_engine.get_rival_multiplier(
+            match.away_team,
+            competition=match.competition
+        )
 
         # Get special conditions (derby, holiday, etc.)
         special_conditions = self.rules_engine.get_special_multipliers(match)
