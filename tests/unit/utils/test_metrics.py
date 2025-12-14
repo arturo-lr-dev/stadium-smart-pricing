@@ -12,6 +12,7 @@ from src.utils.metrics import (
     cache_hit_ratio,
     get_metrics,
     price_changes_total,
+    pricing_calculation_duration_seconds,
     pricing_calculations_total,
     record_price_change,
     record_ticket_sale,
@@ -141,7 +142,7 @@ class TestMetricsDecorators:
     def test_track_time_decorator_with_exception(self):
         """Test track_time decorator when function raises exception."""
 
-        @track_time(pricing_calculations_total, {"match_id": "m1", "calculation_type": "test"})
+        @track_time(pricing_calculation_duration_seconds, {"calculation_type": "test"})
         def failing_function():
             raise ValueError("Test error")
 
@@ -170,7 +171,7 @@ class TestMetricsContext:
         """Test MetricsContext when exception is raised."""
         with pytest.raises(RuntimeError, match="Test error"):
             with MetricsContext(
-                pricing_calculations_total, {"match_id": "m2", "calculation_type": "test"}
+                pricing_calculation_duration_seconds, {"calculation_type": "test"}
             ):
                 raise RuntimeError("Test error")
 
@@ -179,8 +180,8 @@ class TestMetricsContext:
         assert b"pricing_calculation_duration_seconds" in metrics
 
     def test_metrics_context_no_labels(self):
-        """Test MetricsContext without labels."""
-        with MetricsContext(api_request_duration_seconds):
+        """Test MetricsContext with labels."""
+        with MetricsContext(api_request_duration_seconds, {"method": "GET", "endpoint": "/test"}):
             x = 1 + 1
 
         metrics = get_metrics()
