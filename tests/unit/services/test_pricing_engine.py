@@ -81,6 +81,23 @@ def mock_db_session():
 
 
 @pytest.fixture
+def mock_weather_api():
+    """Mock WeatherAPI."""
+    api = MagicMock()
+    # Mock default weather forecast
+    api.get_forecast.return_value = {
+        "temperature": 20.0,
+        "precipitation_probability": 0.1,
+        "wind_speed": 2.0,
+        "weather_condition": "Clear",
+        "description": "clear sky",
+        "humidity": 60,
+        "forecast_date": datetime.now().isoformat(),
+    }
+    return api
+
+
+@pytest.fixture
 def pricing_engine(
     mock_rules_engine,
     mock_demand_predictor,
@@ -88,6 +105,7 @@ def pricing_engine(
     mock_match_repository,
     mock_zone_repository,
     mock_pricing_repository,
+    mock_weather_api,
     mock_db_session,
 ):
     """Create PricingEngine with all mocked dependencies."""
@@ -98,6 +116,7 @@ def pricing_engine(
         match_repository=mock_match_repository,
         zone_repository=mock_zone_repository,
         pricing_repository=mock_pricing_repository,
+        weather_api=mock_weather_api,
         db_session=mock_db_session,
     )
 
