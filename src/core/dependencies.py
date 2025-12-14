@@ -211,7 +211,7 @@ def get_pricing_engine(db: Session = Depends(get_db)):
         db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
-        Instancia de PricingEngine
+        Instancia de PricingEngine with PricingCacheStrategy
 
     Example:
         >>> from fastapi import Depends
@@ -219,7 +219,11 @@ def get_pricing_engine(db: Session = Depends(get_db)):
         >>> def calculate_pricing(match_id: str, engine = Depends(get_pricing_engine)):
         >>>     return engine.calculate_match_pricing(match, zones)
     """
+    from src.core.cache_strategies import get_pricing_cache
     from src.domain.services.pricing_engine import PricingEngine
+
+    # Use pricing cache strategy (5-minute TTL, optimized for pricing calculations)
+    cache_strategy = get_pricing_cache()
 
     return PricingEngine(
         rules_engine=get_rules_engine(db),
@@ -230,6 +234,7 @@ def get_pricing_engine(db: Session = Depends(get_db)):
         pricing_repository=get_pricing_repository(db),
         weather_api=get_weather_api(),
         db_session=db,
+        cache_strategy=cache_strategy,
     )
 
 
