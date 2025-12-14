@@ -7,9 +7,9 @@ over time with automatic timeline progression.
 import logging
 import random
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -21,6 +21,7 @@ from src.core.dependencies import (
 )
 from src.domain.models.match import CompetitionType, Match, MatchStatus
 from src.domain.models.zone import Zone
+from src.domain.repositories.match_repository import MatchRepository
 from src.domain.repositories.zone_repository import ZoneRepository
 from src.domain.services.pricing_engine import PricingEngine
 
@@ -44,11 +45,11 @@ class SalesSimulationStep(BaseModel):
 class SalesSimulationRequest(BaseModel):
     """Request parameters for sales simulation."""
 
-    match_id: str = Field(default="simulation", description="Match identifier")
-    competition: CompetitionType = Field(default=CompetitionType.LA_LIGA)
-    opponent: str = Field(default="FC Barcelona")
-    is_derby: bool = Field(default=False)
-    days_until_match: int = Field(default=30, ge=1, le=90)
+    match_id: Optional[str] = Field(default=None, description="Real match ID from database (optional)")
+    competition: Optional[CompetitionType] = Field(default=CompetitionType.LA_LIGA)
+    opponent: Optional[str] = Field(default="FC Barcelona")
+    is_derby: Optional[bool] = Field(default=False)
+    days_until_match: Optional[int] = Field(default=None, ge=1, le=90, description="Override days until match (optional)")
     base_demand: float = Field(default=0.7, ge=0.1, le=1.0, description="Base demand level")
 
 
@@ -70,29 +71,65 @@ async def simulate_sales_timeline(
     Generates a timeline showing how sales progress from announcement
     to match day, with dynamic pricing adjustments.
     """
-    logger.info(f"Simulating sales timeline for {request.days_until_match} days")
+    
+    # Determine if using real match or synthetic match
+    if request.match_id:
+        # Use real match from database
+        match_repo = MatchRepository(db)
+        match = match_repo.get_by_id(request.match_id)
+
+        if not match:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Match with ID {request.match_id} not found"
+            )
+
+        # Calculate days until match
+        now = datetime.utcnow()
+        if match.date <= now:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot simulate past matches. Match date must be in the future."
+            )
+
+        days_until_match = request.days_until_match or (match.date - now).days
+        match_date = match.date
+
+        logger.info(
+            f"Simulating sales timeline for real match {match.id}: "
+            f"{match.home_team} vs {match.away_team} ({days_until_match} days)"
+        )
+    else:
+        # Create synthetic match (original behavior)
+        days_until_match = request.days_until_match or 30
+        match_date = datetime.utcnow() + timedelta(days=days_until_match)
+
+        match = Match(
+            id="simulation",
+            home_team="RCD Mallorca",
+            away_team=request.opponent or "FC Barcelona",
+            competition=request.competition or CompetitionType.LA_LIGA,
+            match_date=match_date,
+            venue="Son Moix",
+            capacity=23142,
+            is_derby=request.is_derby or False,
+            is_holiday=False,
+            home_position=10,
+            away_position=5,
+            status=MatchStatus.ON_SALE,
+        )
+
+        logger.info(
+            f"Simulating sales timeline for synthetic match: "
+            f"{match.home_team} vs {match.away_team} ({days_until_match} days)"
+        )
+
+    logger.info(f"Simulating sales timeline for {days_until_match} days")
 
     # Get all zones
     zones = zone_repo.get_active_zones()
     if not zones:
         zones = []  # Fallback to empty
-
-    # Create synthetic match
-    match_date = datetime.utcnow() + timedelta(days=request.days_until_match)
-    match = Match(
-        id=request.match_id,
-        home_team="RCD Mallorca",
-        away_team=request.opponent,
-        competition=request.competition,
-        match_date=match_date,
-        venue="Son Moix",
-        capacity=23142,
-        is_derby=request.is_derby,
-        is_holiday=False,
-        home_position=10,
-        away_position=5,
-        status=MatchStatus.ON_SALE,
-    )
 
     # Initialize zone states
     zone_states = {}
@@ -106,7 +143,7 @@ async def simulate_sales_timeline(
 
     # Generate timeline (sample key days)
     timeline = []
-    days_samples = generate_timeline_samples(request.days_until_match)
+    days_samples = generate_timeline_samples(days_until_match)
 
     for days_remaining in days_samples:
         current_datetime = match_date - timedelta(days=days_remaining)
@@ -123,10 +160,10 @@ async def simulate_sales_timeline(
             # Calculate expected sales for this period
             sales_rate = calculate_sales_rate(
                 days_remaining=days_remaining,
-                total_days=request.days_until_match,
+                total_days=days_until_match,
                 base_demand=request.base_demand,
-                is_derby=request.is_derby,
-                competition=request.competition
+                is_derby=match.is_derby,
+                competition=match.competition
             )
 
             # Apply zone-specific multiplier
@@ -229,7 +266,70 @@ async def simulate_sales_timeline(
 
     return create_success_response(
         data=timeline,
-        message=f"Sales timeline generated for {request.days_until_match} days"
+        message=f"Sales timeline generated for {days_until_match} days"
+    )
+
+
+class AvailableMatch(BaseModel):
+    """Available match for simulation."""
+    
+    id: str
+    home_team: str
+    away_team: str
+    competition: str
+    date: datetime
+    venue: str
+    is_derby: bool
+    days_until_match: int
+
+
+@router.get(
+    "/simulator/available-matches",
+    response_model=SuccessResponse[List[AvailableMatch]],
+    summary="Get available matches",
+    description="List future matches available for sales simulation",
+    tags=["Simulator"]
+)
+async def get_available_matches(
+    db: Session = Depends(get_db),
+    days_ahead: int = 90,
+) -> SuccessResponse[List[AvailableMatch]]:
+    """Get list of future matches available for simulation.
+    
+    Args:
+        days_ahead: Number of days to look ahead (default 90)
+        
+    Returns:
+        List of available matches with ON_SALE status
+    """
+    match_repo = MatchRepository(db)
+    
+    # Get upcoming matches with ON_SALE status
+    upcoming_matches = match_repo.get_upcoming(days=days_ahead)
+    
+    # Filter by ON_SALE status and convert to response model
+    now = datetime.utcnow()
+    available_matches = []
+    
+    for match in upcoming_matches:
+        if match.status == MatchStatus.ON_SALE:
+            days_until = (match.date - now).days
+            available_matches.append(AvailableMatch(
+                id=match.id,
+                home_team=match.home_team,
+                away_team=match.away_team,
+                competition=match.competition.value if hasattr(match.competition, 'value') else str(match.competition),
+                date=match.date,
+                venue=match.venue,
+                is_derby=match.is_derby,
+                days_until_match=days_until
+            ))
+    
+    logger.info(f"Found {len(available_matches)} available matches for simulation")
+    
+    return create_success_response(
+        data=available_matches,
+        message=f"Found {len(available_matches)} available matches"
     )
 
 
