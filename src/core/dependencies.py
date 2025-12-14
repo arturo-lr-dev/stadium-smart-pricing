@@ -211,7 +211,7 @@ def get_pricing_engine(db: Session = Depends(get_db)):
         db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
-        Instancia de PricingEngine
+        Instancia de PricingEngine with PricingCacheStrategy
 
     Example:
         >>> from fastapi import Depends
@@ -219,7 +219,11 @@ def get_pricing_engine(db: Session = Depends(get_db)):
         >>> def calculate_pricing(match_id: str, engine = Depends(get_pricing_engine)):
         >>>     return engine.calculate_match_pricing(match, zones)
     """
+    from src.core.cache_strategies import get_pricing_cache
     from src.domain.services.pricing_engine import PricingEngine
+
+    # Use pricing cache strategy (5-minute TTL, optimized for pricing calculations)
+    cache_strategy = get_pricing_cache()
 
     return PricingEngine(
         rules_engine=get_rules_engine(db),
@@ -230,6 +234,7 @@ def get_pricing_engine(db: Session = Depends(get_db)):
         pricing_repository=get_pricing_repository(db),
         weather_api=get_weather_api(),
         db_session=db,
+        cache_strategy=cache_strategy,
     )
 
 
@@ -281,7 +286,7 @@ def get_football_api():
     Dependency para obtener el FootballDataAPI.
 
     Returns:
-        Instancia de FootballDataAPI
+        Instancia de FootballDataAPI with ExternalDataCacheStrategy
 
     Example:
         >>> from fastapi import Depends
@@ -289,9 +294,13 @@ def get_football_api():
         >>> def get_stats(api = Depends(get_football_api)):
         >>>     return api.get_team_stats(team_id="123")
     """
+    from src.core.cache_strategies import get_external_data_cache
     from src.integrations.football_data import FootballDataAPI
 
-    return FootballDataAPI()
+    # Use external data cache strategy (6-hour TTL for football stats)
+    cache_strategy = get_external_data_cache()
+
+    return FootballDataAPI(cache_strategy=cache_strategy)
 
 
 def get_inventory_manager(db: Session = Depends(get_db)):
@@ -302,7 +311,7 @@ def get_inventory_manager(db: Session = Depends(get_db)):
         db: Sesión de base de datos (inyectada automáticamente)
 
     Returns:
-        Instancia de InventoryManager
+        Instancia de InventoryManager con InventoryCacheStrategy
 
     Example:
         >>> from fastapi import Depends
@@ -310,20 +319,19 @@ def get_inventory_manager(db: Session = Depends(get_db)):
         >>> def get_inventory(manager = Depends(get_inventory_manager)):
         >>>     return manager.get_match_inventory("match_123")
     """
+    from src.core.cache_strategies import get_inventory_cache
     from src.domain.services.inventory_manager import InventoryManager
 
     sale_repo = get_sale_repository(db)
     zone_repo = get_zone_repository(db)
-    redis_client = get_redis_client()
 
-    settings = get_settings()
-    cache_ttl = settings.redis.ttl
+    # Use inventory cache strategy (2-minute TTL, optimized for inventory)
+    cache_strategy = get_inventory_cache()
 
     return InventoryManager(
         sale_repository=sale_repo,
         zone_repository=zone_repo,
-        redis_client=redis_client,
-        cache_ttl=cache_ttl,
+        cache_strategy=cache_strategy,
     )
 
 

@@ -1126,63 +1126,72 @@
 
 ---
 
-## FASE 11: Redis Caching Layer
+## FASE 11: Redis Caching Layer ✅ COMPLETED
+
+**Status:** ✅ COMPLETED (2025-12-14)
+**Documentation:** See [PHASE_11_COMPLETION.md](PHASE_11_COMPLETION.md)
 
 ### Redis Client Setup
 
 #### src/core/redis_client.py
-- [ ] Crear clase `RedisClient`
-- [ ] Implementar conexión a Redis
-- [ ] Implementar connection pooling
-- [ ] Implementar health check
+- [x] Crear clase `RedisClient`
+- [x] Implementar conexión a Redis
+- [x] Implementar connection pooling
+- [x] Implementar health check
 
 ### Cache Service
 
 #### src/core/cache_service.py
-- [ ] Crear clase `CacheService`
-- [ ] Implementar método `get(key: str) -> Optional[Any]`
-- [ ] Implementar método `set(key: str, value: Any, ttl: int)`
-- [ ] Implementar método `delete(key: str)`
-- [ ] Implementar método `exists(key: str) -> bool`
-- [ ] Implementar método `get_many(keys: List[str]) -> Dict[str, Any]`
-- [ ] Implementar método `set_many(mapping: Dict[str, Any], ttl: int)`
-- [ ] Implementar serialización (JSON o pickle)
-- [ ] Implementar deserialización
+- [x] Crear clase `CacheService`
+- [x] Implementar método `get(key: str) -> Optional[Any]`
+- [x] Implementar método `set(key: str, value: Any, ttl: int)`
+- [x] Implementar método `delete(key: str)`
+- [x] Implementar método `exists(key: str) -> bool`
+- [x] Implementar método `get_many(keys: List[str]) -> Dict[str, Any]`
+- [x] Implementar método `set_many(mapping: Dict[str, Any], ttl: int)`
+- [x] Implementar serialización (JSON o pickle)
+- [x] Implementar deserialización
 
 ### Cache Strategies
 
-- [ ] Implementar estrategia de cache para pricing:
-  - [ ] Key: `pricing:match:{match_id}`
-  - [ ] TTL: 5 minutos
-- [ ] Implementar estrategia de cache para inventario:
-  - [ ] Key: `inventory:match:{match_id}:zone:{zone_id}`
-  - [ ] TTL: 2 minutos
-- [ ] Implementar estrategia de cache para datos externos:
-  - [ ] Key: `external:{source}:{key}`
-  - [ ] TTL: 1-6 horas según fuente
-- [ ] Implementar invalidación selectiva de cache
+- [x] Implementar estrategia de cache para pricing:
+  - [x] Key: `pricing:match:{match_id}`
+  - [x] TTL: 5 minutos
+- [x] Implementar estrategia de cache para inventario:
+  - [x] Key: `inventory:match:{match_id}:zone:{zone_id}`
+  - [x] TTL: 2 minutos
+- [x] Implementar estrategia de cache para datos externos:
+  - [x] Key: `external:{source}:{key}`
+  - [x] TTL: 1-6 horas según fuente
+- [x] Implementar estrategia de cache para sesiones:
+  - [x] Key: `session:{session_id}:{key}`
+  - [x] TTL: 30 minutos
+- [x] Implementar invalidación selectiva de cache
 
 ### Cache Decorators
 
 #### src/utils/cache_decorators.py
-- [ ] Crear decorator `@cached(ttl: int, key_prefix: str)`
-- [ ] Implementar lógica de cache transparente
-- [ ] Ejemplo:
-  ```python
-  @cached(ttl=300, key_prefix="pricing")
-  def calculate_pricing(match_id: str):
-      # expensive calculation
-      pass
-  ```
+- [x] Crear decorator `@cached(ttl: int, key_prefix: str)`
+- [x] Crear decorator `@cached_property_method` para métodos de clase
+- [x] Crear decorator `@invalidate_cache` para operaciones de escritura
+- [x] Implementar lógica de cache transparente
+- [x] Implementar generación automática de cache keys
+- [x] Implementar helper methods (cache_invalidate, cache_clear)
 
 ### Cache Tests
 
-- [ ] Crear `tests/unit/core/test_cache_service.py`
-- [ ] Testear operaciones básicas (get, set, delete)
-- [ ] Testear TTL
-- [ ] Testear serialización/deserialización
-- [ ] Usar fakeredis para tests
-- [ ] Ejecutar tests: `pytest tests/unit/core/test_cache_service.py`
+- [x] Crear `tests/unit/core/test_cache_service.py` (35 tests)
+- [x] Crear `tests/unit/core/test_cache_strategies.py` (26 tests)
+- [x] Crear `tests/unit/utils/test_cache_decorators.py` (22 tests)
+- [x] Testear operaciones básicas (get, set, delete)
+- [x] Testear operaciones batch (get_many, set_many)
+- [x] Testear TTL management
+- [x] Testear serialización/deserialización (JSON y pickle)
+- [x] Testear todas las estrategias de cache
+- [x] Testear decoradores
+- [x] Usar fakeredis para tests
+- [x] Ejecutar tests: `pytest tests/unit/core/test_cache*.py tests/unit/utils/test_cache*.py`
+- [x] **Result: 83/83 tests passing ✅**
 
 ---
 

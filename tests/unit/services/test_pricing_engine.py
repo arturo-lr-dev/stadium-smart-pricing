@@ -8,6 +8,7 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, Mock, patch, call
 
+from src.core.cache_strategies import PricingCacheStrategy
 from src.domain.models.match import Match, MatchStatus
 from src.domain.models.pricing import MatchPricing, PricingFactors, ZonePricing
 from src.domain.models.zone import Zone
@@ -98,6 +99,17 @@ def mock_weather_api():
 
 
 @pytest.fixture
+def mock_cache_strategy():
+    """Mock PricingCacheStrategy."""
+    cache = Mock(spec=PricingCacheStrategy)
+    cache.get = Mock(return_value=None)
+    cache.set = Mock(return_value=True)
+    cache.invalidate = Mock(return_value=True)
+    cache.invalidate_all = Mock(return_value=0)
+    return cache
+
+
+@pytest.fixture
 def pricing_engine(
     mock_rules_engine,
     mock_demand_predictor,
@@ -107,6 +119,7 @@ def pricing_engine(
     mock_pricing_repository,
     mock_weather_api,
     mock_db_session,
+    mock_cache_strategy,
 ):
     """Create PricingEngine with all mocked dependencies."""
     return PricingEngine(
@@ -118,6 +131,7 @@ def pricing_engine(
         pricing_repository=mock_pricing_repository,
         weather_api=mock_weather_api,
         db_session=mock_db_session,
+        cache_strategy=mock_cache_strategy,
     )
 
 
@@ -358,7 +372,7 @@ def test_calculate_pricing_factors_calls_dependencies(
     mock_rules_engine.get_time_decay_factor.assert_called_once()
     mock_rules_engine.get_inventory_pressure_factor.assert_called_once_with(occupancy_percent)
     mock_rules_engine.get_competition_multiplier.assert_called_once_with(sample_match.competition)
-    mock_rules_engine.get_rival_multiplier.assert_called_once_with(sample_match.away_team)
+    mock_rules_engine.get_rival_multiplier.assert_called_once_with(sample_match.away_team, competition=sample_match.competition)
     mock_rules_engine.get_special_multipliers.assert_called_once_with(sample_match)
 
 

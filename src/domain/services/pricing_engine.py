@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
+from src.core.cache_strategies import PricingCacheStrategy
 from src.domain.models.db_models import PricingHistoryDB
 from src.domain.models.match import Match
 from src.domain.models.pricing import MatchPricing, PricingFactors, ZonePricing
@@ -49,6 +50,7 @@ class PricingEngine:
         pricing_repository: PricingHistoryRepository,
         weather_api: WeatherAPI,
         db_session: Session,
+        cache_strategy: Optional[PricingCacheStrategy] = None,
     ):
         """
         Initialize the Pricing Engine.
@@ -62,6 +64,7 @@ class PricingEngine:
             pricing_repository: Repository for pricing history operations
             weather_api: Weather API for fetching weather forecasts
             db_session: Database session for transactions
+            cache_strategy: Optional PricingCacheStrategy for caching (default creates new instance)
         """
         self.rules_engine = rules_engine
         self.demand_predictor = demand_predictor
@@ -71,6 +74,7 @@ class PricingEngine:
         self.pricing_repo = pricing_repository
         self.weather_api = weather_api
         self.db_session = db_session
+        self.cache = cache_strategy or PricingCacheStrategy()
 
         logger.info("PricingEngine initialized successfully")
 
@@ -79,6 +83,7 @@ class PricingEngine:
         match: Match,
         zones: List[Zone],
         current_datetime: Optional[datetime] = None,
+        use_cache: bool = True,
     ) -> MatchPricing:
         """
         Calculate pricing for all zones in a match.
@@ -90,6 +95,7 @@ class PricingEngine:
             match: Match object
             zones: List of zones to calculate pricing for
             current_datetime: Current datetime (defaults to now)
+            use_cache: Whether to use cache (default True)
 
         Returns:
             MatchPricing object with pricing for all zones
@@ -102,6 +108,16 @@ class PricingEngine:
 
         if current_datetime is None:
             current_datetime = datetime.now()
+
+        # Check cache first
+        if use_cache:
+            try:
+                cached_pricing = self.cache.get(match.id)
+                if cached_pricing:
+                    logger.debug(f"Cache hit for match pricing: {match.id}")
+                    return MatchPricing(**cached_pricing)
+            except Exception as e:
+                logger.warning(f"Cache error in calculate_match_pricing, proceeding with calculation: {e}")
 
         logger.info(
             f"Calculating pricing for match {match.id} ({match.home_team} vs {match.away_team}) "
@@ -148,6 +164,13 @@ class PricingEngine:
             f"avg_price={avg_price:.2f}, "
             f"occupancy={total_sold}/{total_capacity} ({(total_sold/total_capacity*100):.1f}%)"
         )
+
+        # Cache the result
+        if use_cache:
+            try:
+                self.cache.set(match.id, match_pricing.model_dump())
+            except Exception as e:
+                logger.warning(f"Failed to cache pricing data: {e}")
 
         return match_pricing
 
@@ -559,3 +582,19 @@ class PricingEngine:
         except Exception as e:
             logger.error(f"Error getting price change count: {e}")
             return 0
+
+    def invalidate_cache(self, match_id: str) -> None:
+        """
+        Invalidate cached pricing for a match.
+
+        Should be called when match data changes that would affect pricing
+        (e.g., new sales, updated match details, weather changes).
+
+        Args:
+            match_id: Match identifier
+        """
+        try:
+            self.cache.invalidate(match_id)
+            logger.info(f"Invalidated pricing cache for match {match_id}")
+        except Exception as e:
+            logger.warning(f"Failed to invalidate pricing cache: {e}")

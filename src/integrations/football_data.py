@@ -12,6 +12,7 @@ from time import sleep
 
 import httpx
 
+from src.core.cache_strategies import ExternalDataCacheStrategy
 from src.core.config import get_settings
 from src.core.exceptions import ExternalAPIError
 
@@ -31,7 +32,7 @@ class FootballDataAPI:
         self,
         api_key: Optional[str] = None,
         base_url: str = "https://api.football-data.org/v4",
-        cache_ttl: int = 21600,  # 6 hours
+        cache_strategy: Optional[ExternalDataCacheStrategy] = None,
     ):
         """
         Initialize Football Data API client.
@@ -39,12 +40,12 @@ class FootballDataAPI:
         Args:
             api_key: API key for authentication. If None, reads from settings.
             base_url: Base URL for the API.
-            cache_ttl: Cache TTL in seconds (default 6 hours).
+            cache_strategy: Optional ExternalDataCacheStrategy for caching (default creates new instance).
         """
         settings = get_settings()
         self.api_key = api_key or settings.FOOTBALL_DATA_API_KEY
         self.base_url = base_url.rstrip("/")
-        self.cache_ttl = cache_ttl
+        self.cache = cache_strategy or ExternalDataCacheStrategy()
 
         # Rate limiting configuration
         config = settings.load_yaml_config("config/base.yaml")
@@ -63,9 +64,6 @@ class FootballDataAPI:
         read_timeout = timeout_config.get("read", 30.0)
         self.timeout = httpx.Timeout(timeout=30.0, connect=connect_timeout, read=read_timeout)
 
-        # Simple in-memory cache (could be upgraded to Redis)
-        self._cache: Dict[str, tuple[datetime, any]] = {}
-
         # Rate limiting state
         self._request_times: List[datetime] = []
 
@@ -74,27 +72,41 @@ class FootballDataAPI:
             extra={
                 "base_url": self.base_url,
                 "rate_limit": self.rate_limit,
-                "cache_ttl": self.cache_ttl,
             },
         )
 
     def _get_from_cache(self, key: str) -> Optional[any]:
-        """Get value from cache if not expired."""
-        if key in self._cache:
-            cached_at, value = self._cache[key]
-            if datetime.utcnow() - cached_at < timedelta(seconds=self.cache_ttl):
+        """
+        Get value from cache.
+
+        Args:
+            key: Cache key identifier
+
+        Returns:
+            Cached value if exists and not expired, None otherwise
+        """
+        try:
+            cached = self.cache.get("football_stats", key)
+            if cached:
                 logger.debug(f"Cache hit for key: {key}")
-                return value
-            else:
-                # Remove expired entry
-                del self._cache[key]
-                logger.debug(f"Cache expired for key: {key}")
+                return cached
+        except Exception as e:
+            logger.warning(f"Cache error in _get_from_cache: {e}")
         return None
 
     def _set_cache(self, key: str, value: any) -> None:
-        """Set value in cache with current timestamp."""
-        self._cache[key] = (datetime.utcnow(), value)
-        logger.debug(f"Cached value for key: {key}")
+        """
+        Set value in cache.
+
+        Args:
+            key: Cache key identifier
+            value: Value to cache
+        """
+        try:
+            self.cache.set("football_stats", key, value)
+            logger.debug(f"Cached value for key: {key}")
+        except Exception as e:
+            logger.warning(f"Failed to cache value: {e}")
 
     def _apply_rate_limit(self) -> None:
         """
