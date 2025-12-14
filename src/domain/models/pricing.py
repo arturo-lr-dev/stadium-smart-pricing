@@ -26,13 +26,13 @@ class PricingFactors(BaseModel):
         ..., description="Time-based multiplier (urgency)", ge=0.1, le=2.0
     )
     inventory_factor: float = Field(
-        ..., description="Inventory pressure multiplier", ge=0.1, le=1.5
+        ..., description="Inventory pressure multiplier", ge=0.1, le=2.0
     )
     competition_factor: float = Field(
         ..., description="Competition importance multiplier", ge=1.0, le=3.0
     )
     rival_factor: float = Field(
-        default=1.0, description="Rival team multiplier", ge=0.8, le=2.0
+        default=1.0, description="Rival team multiplier", ge=0.8, le=3.0
     )
     weather_factor: float = Field(
         default=1.0, description="Weather impact multiplier", ge=0.9, le=1.1

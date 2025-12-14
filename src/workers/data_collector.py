@@ -423,19 +423,33 @@ class DataCollectorWorker(BaseWorker):
             data_value: Data to store
         """
         try:
-            # Store in PostgreSQL
-            external_data = ExternalDataDB(
-                source=source,
-                data_key=data_key,
-                data_value=data_value,
-                fetched_at=datetime.now(),
-                expires_at=datetime.now() + timedelta(hours=6)  # 6 hour TTL
-            )
+            # Generate unique ID from source and data_key
+            record_id = f"{source}:{data_key}"
 
-            self.db.add(external_data)
+            # Check if record exists
+            existing = self.db.query(ExternalDataDB).filter_by(id=record_id).first()
+
+            if existing:
+                # Update existing record
+                existing.data_value = data_value
+                existing.fetched_at = datetime.now()
+                existing.expires_at = datetime.now() + timedelta(hours=6)
+                existing.is_valid = True
+                logger.debug(f"Updated external data: {source}:{data_key}")
+            else:
+                # Create new record
+                external_data = ExternalDataDB(
+                    id=record_id,
+                    source=source,
+                    data_key=data_key,
+                    data_value=data_value,
+                    fetched_at=datetime.now(),
+                    expires_at=datetime.now() + timedelta(hours=6)
+                )
+                self.db.add(external_data)
+                logger.debug(f"Stored new external data: {source}:{data_key}")
+
             self.db.commit()
-
-            logger.debug(f"Stored external data: {source}:{data_key}")
 
             # Also cache in Redis for faster access
             cache_key = f"external:{source}:{data_key}"

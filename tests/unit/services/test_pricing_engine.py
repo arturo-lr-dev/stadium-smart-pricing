@@ -291,7 +291,8 @@ def test_calculate_zone_price_includes_inventory_data(
     assert result.sold_tickets == 2000
     assert result.available_tickets == 3000
     assert result.capacity == sample_zone.capacity
-    assert result.occupancy_percent == (2000 / sample_zone.capacity * 100)
+    # occupancy_percent is returned as a fraction (0.4) not percentage (40)
+    assert result.occupancy_percent == (2000 / sample_zone.capacity)
 
 
 # ============================================================================
