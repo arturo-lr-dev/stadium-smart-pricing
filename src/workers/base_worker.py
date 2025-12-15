@@ -79,7 +79,7 @@ class BaseWorker(ABC):
         self.last_heartbeat = datetime.now()
 
         # Record worker start
-        worker_tasks_total.labels(worker=self.name, status="started").inc()
+        worker_tasks_total.labels(worker_name=self.name, status="started").inc()
 
         start_time = time.time()
         try:
@@ -87,14 +87,14 @@ class BaseWorker(ABC):
 
             # Record successful completion
             duration = time.time() - start_time
-            worker_task_duration_seconds.labels(worker=self.name).observe(duration)
-            worker_tasks_total.labels(worker=self.name, status="completed").inc()
+            worker_task_duration_seconds.labels(worker_name=self.name).observe(duration)
+            worker_tasks_total.labels(worker_name=self.name, status="completed").inc()
 
         except Exception as e:
             # Record failure
             duration = time.time() - start_time
-            worker_task_duration_seconds.labels(worker=self.name).observe(duration)
-            worker_tasks_total.labels(worker=self.name, status="failed").inc()
+            worker_task_duration_seconds.labels(worker_name=self.name).observe(duration)
+            worker_tasks_total.labels(worker_name=self.name, status="failed").inc()
 
             logger.error(f"Worker {self.name} failed with error: {e}", exc_info=True)
             raise
@@ -115,7 +115,7 @@ class BaseWorker(ABC):
         self.last_heartbeat = datetime.now()
 
         # Update last run timestamp metric
-        worker_last_run_timestamp.labels(worker=self.name).set(self.last_heartbeat.timestamp())
+        worker_last_run_timestamp.labels(worker_name=self.name).set(self.last_heartbeat.timestamp())
 
         logger.debug(f"Worker {self.name} heartbeat at {self.last_heartbeat}")
 
@@ -156,7 +156,7 @@ class BaseWorker(ABC):
 
         # Record worker error metric
         worker_errors_total.labels(
-            worker=self.name,
+            worker_name=self.name,
             error_type=type(error).__name__
         ).inc()
 
