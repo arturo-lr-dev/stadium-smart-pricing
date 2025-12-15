@@ -250,6 +250,15 @@ class FootballDataAPI:
 
                 # Record success metrics
                 duration = time_module.time() - start_time
+
+                # Record API call with status
+                external_api_calls_total.labels(
+                    service="football_data",
+                    endpoint=endpoint,
+                    status="success"
+                ).inc()
+
+                # Record duration
                 external_api_duration_seconds.labels(
                     service="football_data",
                     endpoint=endpoint
@@ -278,11 +287,21 @@ class FootballDataAPI:
         # If we get here, all retries failed
         # Record error metrics
         duration = time_module.time() - start_time
+
+        # Record failed API call
+        external_api_calls_total.labels(
+            service="football_data",
+            endpoint=endpoint,
+            status="error"
+        ).inc()
+
+        # Record error
         external_api_errors_total.labels(
             service="football_data",
             error_type=type(last_exception).__name__ if last_exception else "Unknown"
         ).inc()
 
+        # Record duration
         external_api_duration_seconds.labels(
             service="football_data",
             endpoint=endpoint
