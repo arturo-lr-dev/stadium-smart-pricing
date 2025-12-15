@@ -83,12 +83,13 @@ class DemandPredictor:
         Returns:
             Demand score between 0.0 and 1.0
         """
-        prediction_method = "ml" if self.use_ml and self.model else "heuristic"
+        # Determine model name for metrics
+        model_name = "demand_predictor"
 
         # Measure prediction duration
         with MetricsContext(
             ml_prediction_duration_seconds,
-            {"method": prediction_method}
+            {"model_name": model_name}
         ):
             # Use ML model if available
             if self.use_ml and self.model:
@@ -97,9 +98,8 @@ class DemandPredictor:
 
                     # Record successful ML prediction
                     ml_predictions_total.labels(
-                        method="ml",
-                        model_type="demand",
-                        status="success"
+                        model_name=model_name,
+                        prediction_type="ml_success"
                     ).inc()
 
                     logger.debug(
@@ -109,9 +109,8 @@ class DemandPredictor:
                 except Exception as e:
                     # Record failed ML prediction
                     ml_predictions_total.labels(
-                        method="ml",
-                        model_type="demand",
-                        status="error"
+                        model_name=model_name,
+                        prediction_type="ml_error"
                     ).inc()
 
                     logger.warning(
@@ -123,11 +122,10 @@ class DemandPredictor:
                         match, zone, days_to_match, current_occupancy
                     )
 
-                    # Record heuristic prediction
+                    # Record heuristic fallback prediction
                     ml_predictions_total.labels(
-                        method="heuristic",
-                        model_type="demand",
-                        status="success"
+                        model_name=model_name,
+                        prediction_type="heuristic_fallback"
                     ).inc()
             else:
                 # Heuristic fallback
@@ -137,9 +135,8 @@ class DemandPredictor:
 
                 # Record heuristic prediction
                 ml_predictions_total.labels(
-                    method="heuristic",
-                    model_type="demand",
-                    status="success"
+                    model_name=model_name,
+                    prediction_type="heuristic"
                 ).inc()
 
                 logger.debug(
