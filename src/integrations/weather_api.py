@@ -157,13 +157,6 @@ class WeatherAPI:
         # Start metrics tracking
         start_time = time_module.time()
 
-        # Record API call metric
-        external_api_calls_total.labels(
-            service="weather_api",
-            endpoint=endpoint,
-            method="GET"
-        ).inc()
-
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
         # Add API key to params
@@ -240,10 +233,18 @@ class WeatherAPI:
 
                 # Record success metrics
                 duration = time_module.time() - start_time
-                external_api_duration_seconds.labels(
+
+                # Record API call with status
+                external_api_calls_total.labels(
                     service="weather_api",
                     endpoint=endpoint,
-                    status_code="200"
+                    status="success"
+                ).inc()
+
+                # Record duration
+                external_api_duration_seconds.labels(
+                    service="weather_api",
+                    endpoint=endpoint
                 ).observe(duration)
 
                 return data
@@ -269,16 +270,24 @@ class WeatherAPI:
         # If we get here, all retries failed
         # Record error metrics
         duration = time_module.time() - start_time
-        external_api_errors_total.labels(
+
+        # Record failed API call
+        external_api_calls_total.labels(
             service="weather_api",
             endpoint=endpoint,
+            status="error"
+        ).inc()
+
+        # Record error
+        external_api_errors_total.labels(
+            service="weather_api",
             error_type=type(last_exception).__name__ if last_exception else "Unknown"
         ).inc()
 
+        # Record duration
         external_api_duration_seconds.labels(
             service="weather_api",
-            endpoint=endpoint,
-            status_code="error"
+            endpoint=endpoint
         ).observe(duration)
 
         raise ExternalAPIError(api_name="weather_api", message=f"Weather API request failed after {self.max_attempts} attempts: {last_exception}",
