@@ -170,13 +170,6 @@ class FootballDataAPI:
         # Start metrics tracking
         start_time = time_module.time()
 
-        # Record API call metric
-        external_api_calls_total.labels(
-            service="football_data",
-            endpoint=endpoint,
-            method="GET"
-        ).inc()
-
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         headers = {"X-Auth-Token": self.api_key} if self.api_key else {}
 
@@ -194,6 +187,13 @@ class FootballDataAPI:
 
                 with httpx.Client(timeout=self.timeout) as client:
                     response = client.get(url, headers=headers, params=params or {})
+
+                # Record API call metric
+                external_api_calls_total.labels(
+                    service="football_data",
+                    endpoint=endpoint,
+                    status=str(response.status_code)
+                ).inc()
 
                 # Handle HTTP errors
                 if response.status_code == 401:
@@ -252,8 +252,7 @@ class FootballDataAPI:
                 duration = time_module.time() - start_time
                 external_api_duration_seconds.labels(
                     service="football_data",
-                    endpoint=endpoint,
-                    status_code="200"
+                    endpoint=endpoint
                 ).observe(duration)
 
                 return data
@@ -281,14 +280,12 @@ class FootballDataAPI:
         duration = time_module.time() - start_time
         external_api_errors_total.labels(
             service="football_data",
-            endpoint=endpoint,
             error_type=type(last_exception).__name__ if last_exception else "Unknown"
         ).inc()
 
         external_api_duration_seconds.labels(
             service="football_data",
-            endpoint=endpoint,
-            status_code="error"
+            endpoint=endpoint
         ).observe(duration)
 
         raise ExternalAPIError(api_name="football_data", message=f"Football Data API request failed after {self.max_attempts} attempts: {last_exception}",
@@ -460,5 +457,5 @@ class FootballDataAPI:
 
     def clear_cache(self) -> None:
         """Clear all cached data."""
-        self._cache.clear()
-        logger.info("Football Data API cache cleared")
+        cleared = self.cache.invalidate_source("football_stats")
+        logger.info(f"Football Data API cache cleared ({cleared} keys removed)")
