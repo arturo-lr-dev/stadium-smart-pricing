@@ -239,16 +239,13 @@ python src/ml/training/train_demand.py
 python src/ml/training/evaluate.py --model-path models/demand_model.pkl
 ```
 
-## Despliegue
-
-Ver documentación detallada en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-
 ## Documentación Adicional
 
-- [Arquitectura](docs/ARCHITECTURE.md)
-- [Plan de Implementación](docs/IMPLEMENTATION_PLAN.md)
-- [Guía de Configuración](docs/CONFIGURATION.md)
-- [Modelo ML](docs/ML_MODEL.md)
+- [Arquitectura del Sistema](docs/ARCHITECTURE.md) - Diseño, patrones y componentes principales
+- [Guía de Configuración](docs/CONFIGURATION.md) - Configuración YAML y variables de entorno
+- [Modelo de Machine Learning](docs/ML_MODEL.md) - Feature engineering, entrenamiento y deployment
+- [Plan de Implementación](docs/IMPLEMENTATION_PLAN.md) - Roadmap de desarrollo por fases
+- [Plan de Integración de Cache](docs/CACHE_INTEGRATION_PLAN.md) - Estrategias de caching
 
 ## Troubleshooting
 
@@ -289,6 +286,6 @@ redis-cli -h localhost -p 6379 ping
 
 ## Contacto
 
-Smart Pricing Team - [@smartpricing](https://twitter.com/smartpricing)
+Smart Pricing Team - @legasint
 
 Project Link: [https://github.com/username/stadium-smart-pricing](https://github.com/username/stadium-smart-pricing)
