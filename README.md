@@ -241,8 +241,11 @@ python src/ml/training/evaluate.py --model-path models/demand_model.pkl
 
 ## Documentación Adicional
 
-- [Plan de Implementación](docs/IMPLEMENTATION_PLAN.md)
-- [Plan de Integración de Cache](docs/CACHE_INTEGRATION_PLAN.md)
+- [Arquitectura del Sistema](docs/ARCHITECTURE.md) - Diseño, patrones y componentes principales
+- [Guía de Configuración](docs/CONFIGURATION.md) - Configuración YAML y variables de entorno
+- [Modelo de Machine Learning](docs/ML_MODEL.md) - Feature engineering, entrenamiento y deployment
+- [Plan de Implementación](docs/IMPLEMENTATION_PLAN.md) - Roadmap de desarrollo por fases
+- [Plan de Integración de Cache](docs/CACHE_INTEGRATION_PLAN.md) - Estrategias de caching
 
 ## Troubleshooting
 
