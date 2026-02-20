@@ -6,6 +6,7 @@ weather forecasts and historical weather data for match planning.
 """
 
 import logging
+import time as time_module
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 from time import sleep
@@ -14,6 +15,11 @@ import httpx
 
 from src.core.config import get_settings
 from src.core.exceptions import ExternalAPIError
+from src.utils.metrics import (
+    external_api_calls_total,
+    external_api_duration_seconds,
+    external_api_errors_total,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -148,6 +154,9 @@ class WeatherAPI:
             if cached is not None:
                 return cached
 
+        # Start metrics tracking
+        start_time = time_module.time()
+
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
         # Add API key to params
@@ -170,6 +179,13 @@ class WeatherAPI:
 
                 with httpx.Client(timeout=self.timeout) as client:
                     response = client.get(url, params=request_params)
+
+                # Record API call metric
+                external_api_calls_total.labels(
+                    service="weather_api",
+                    endpoint=endpoint,
+                    status=str(response.status_code)
+                ).inc()
 
                 # Handle HTTP errors
                 if response.status_code == 401:
@@ -222,6 +238,22 @@ class WeatherAPI:
                     },
                 )
 
+                # Record success metrics
+                duration = time_module.time() - start_time
+
+                # Record API call with status
+                external_api_calls_total.labels(
+                    service="weather_api",
+                    endpoint=endpoint,
+                    status="success"
+                ).inc()
+
+                # Record duration
+                external_api_duration_seconds.labels(
+                    service="weather_api",
+                    endpoint=endpoint
+                ).observe(duration)
+
                 return data
 
             except httpx.TimeoutException as e:
@@ -243,6 +275,28 @@ class WeatherAPI:
                 raise
 
         # If we get here, all retries failed
+        # Record error metrics
+        duration = time_module.time() - start_time
+
+        # Record failed API call
+        external_api_calls_total.labels(
+            service="weather_api",
+            endpoint=endpoint,
+            status="error"
+        ).inc()
+
+        # Record error
+        external_api_errors_total.labels(
+            service="weather_api",
+            error_type=type(last_exception).__name__ if last_exception else "Unknown"
+        ).inc()
+
+        # Record duration
+        external_api_duration_seconds.labels(
+            service="weather_api",
+            endpoint=endpoint
+        ).observe(duration)
+
         raise ExternalAPIError(api_name="weather_api", message=f"Weather API request failed after {self.max_attempts} attempts: {last_exception}",
         )
 

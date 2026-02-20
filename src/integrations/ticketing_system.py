@@ -16,6 +16,7 @@ from enum import Enum
 
 from src.core.config import get_settings
 from src.core.exceptions import ExternalAPIError
+from src.utils.metrics import record_ticket_sale
 
 
 logger = logging.getLogger(__name__)
@@ -359,12 +360,23 @@ class TicketingSystemAPI:
         reservation_id = str(uuid.uuid4())
         expires_at = datetime.utcnow() + timedelta(seconds=self.reservation_ttl)
 
+        # Mock price - in production this would come from the pricing system
+        # Price varies by zone: VIP=100, Premium=70, Standard=45
+        if "vip" in zone_id.lower():
+            price_per_ticket = 100.0
+        elif "premium" in zone_id.lower():
+            price_per_ticket = 70.0
+        else:
+            price_per_ticket = 45.0
+
         self._reservations[reservation_id] = {
             "reservation_id": reservation_id,
             "status": ReservationStatus.PENDING,
             "match_id": match_id,
             "zone_id": zone_id,
             "quantity": quantity,
+            "price_per_ticket": price_per_ticket,
+            "total_amount": price_per_ticket * quantity,
             "customer_email": customer_email,
             "created_at": datetime.utcnow(),
             "expires_at": expires_at,
@@ -411,7 +423,25 @@ class TicketingSystemAPI:
         reservation["payment_id"] = payment_id
         reservation["confirmed_at"] = datetime.utcnow()
 
-        logger.info(f"Confirmed mock reservation {reservation_id}")
+        # Record ticket sale metric
+        # Customer type is not tracked in mock system, default to "standard"
+        record_ticket_sale(
+            match_id=reservation["match_id"],
+            zone_id=reservation["zone_id"],
+            customer_type="standard",  # In production, this would come from customer data
+            quantity=reservation["quantity"],
+            total_amount=reservation.get("total_amount", 0.0),
+        )
+
+        logger.info(
+            f"Confirmed mock reservation {reservation_id}",
+            extra={
+                "match_id": reservation["match_id"],
+                "zone_id": reservation["zone_id"],
+                "quantity": reservation["quantity"],
+                "total_amount": reservation.get("total_amount", 0.0),
+            },
+        )
         return True
 
     def _cancel_mock_reservation(self, reservation_id: str) -> bool:

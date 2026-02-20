@@ -12,6 +12,12 @@ from pathlib import Path
 
 from src.domain.models.match import Match
 from src.domain.models.zone import Zone
+from src.utils.metrics import (
+    MetricsContext,
+    demand_score as demand_score_metric,
+    ml_prediction_duration_seconds,
+    ml_predictions_total,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,31 +83,70 @@ class DemandPredictor:
         Returns:
             Demand score between 0.0 and 1.0
         """
-        # Use ML model if available
-        if self.use_ml and self.model:
-            try:
-                demand_score = self.model.predict_demand(match, zone, days_to_match)
+        # Determine model name for metrics
+        model_name = "demand_predictor"
+
+        # Measure prediction duration
+        with MetricsContext(
+            ml_prediction_duration_seconds,
+            {"model_name": model_name}
+        ):
+            # Use ML model if available
+            if self.use_ml and self.model:
+                try:
+                    demand_score = self.model.predict_demand(match, zone, days_to_match)
+
+                    # Record successful ML prediction
+                    ml_predictions_total.labels(
+                        model_name=model_name,
+                        prediction_type="ml_success"
+                    ).inc()
+
+                    logger.debug(
+                        f"ML predicted demand for match {match.id}, zone {zone.id}: "
+                        f"{demand_score:.3f}"
+                    )
+                except Exception as e:
+                    # Record failed ML prediction
+                    ml_predictions_total.labels(
+                        model_name=model_name,
+                        prediction_type="ml_error"
+                    ).inc()
+
+                    logger.warning(
+                        f"ML prediction failed: {e}. Falling back to heuristics."
+                    )
+
+                    # Fall through to heuristic method
+                    demand_score = self._predict_demand_heuristic(
+                        match, zone, days_to_match, current_occupancy
+                    )
+
+                    # Record heuristic fallback prediction
+                    ml_predictions_total.labels(
+                        model_name=model_name,
+                        prediction_type="heuristic_fallback"
+                    ).inc()
+            else:
+                # Heuristic fallback
+                demand_score = self._predict_demand_heuristic(
+                    match, zone, days_to_match, current_occupancy
+                )
+
+                # Record heuristic prediction
+                ml_predictions_total.labels(
+                    model_name=model_name,
+                    prediction_type="heuristic"
+                ).inc()
+
                 logger.debug(
-                    f"ML predicted demand for match {match.id}, zone {zone.id}: "
-                    f"{demand_score:.3f}"
+                    f"Heuristic predicted demand for match {match.id}, zone {zone.id}: "
+                    f"{demand_score:.3f} (days_to_match={days_to_match}, "
+                    f"occupancy={current_occupancy:.1f}%)"
                 )
-                return demand_score
-            except Exception as e:
-                logger.warning(
-                    f"ML prediction failed: {e}. Falling back to heuristics."
-                )
-                # Fall through to heuristic method
 
-        # Heuristic fallback
-        demand_score = self._predict_demand_heuristic(
-            match, zone, days_to_match, current_occupancy
-        )
-
-        logger.debug(
-            f"Heuristic predicted demand for match {match.id}, zone {zone.id}: "
-            f"{demand_score:.3f} (days_to_match={days_to_match}, "
-            f"occupancy={current_occupancy:.1f}%)"
-        )
+        # Update demand score gauge
+        demand_score_metric.labels(match_id=match.id, zone_id=zone.id).set(demand_score)
 
         return demand_score
 

@@ -1195,76 +1195,79 @@
 
 ---
 
-## FASE 12: Monitoring & Observability
+## FASE 12: Monitoring & Observability ✅ COMPLETED
+
+**Status:** ✅ COMPLETED (2025-12-14)
+**Documentation:** See [PHASE_12_COMPLETION.md](PHASE_12_COMPLETION.md)
 
 ### Logging Setup
 
-- [ ] Configurar logging estructurado (JSON)
-- [ ] Configurar diferentes niveles por módulo
-- [ ] Configurar rotación de logs
-- [ ] Configurar logs a stdout para Docker
+- [x] Configurar logging estructurado (JSON)
+- [x] Configurar diferentes niveles por módulo
+- [x] Configurar rotación de logs
+- [x] Configurar logs a stdout para Docker
 
 ### Prometheus Metrics
 
 #### src/utils/metrics.py
-- [ ] Instalar `prometheus_client`
-- [ ] Crear métricas:
-  - [ ] Counter: `pricing_calculations_total`
-  - [ ] Histogram: `pricing_calculation_duration_seconds`
-  - [ ] Gauge: `active_matches`
-  - [ ] Gauge: `cached_prices`
-  - [ ] Counter: `api_requests_total` (por endpoint, status)
-  - [ ] Histogram: `api_request_duration_seconds`
-  - [ ] Counter: `external_api_calls_total` (por servicio)
-  - [ ] Counter: `external_api_errors_total`
-- [ ] Implementar middleware de FastAPI para métricas automáticas
-- [ ] Exponer endpoint `/metrics` para Prometheus
+- [x] Instalar `prometheus_client`
+- [x] Crear métricas:
+  - [x] Counter: `pricing_calculations_total`
+  - [x] Histogram: `pricing_calculation_duration_seconds`
+  - [x] Gauge: `active_matches`
+  - [x] Gauge: `cached_prices`
+  - [x] Counter: `api_requests_total` (por endpoint, status)
+  - [x] Histogram: `api_request_duration_seconds`
+  - [x] Counter: `external_api_calls_total` (por servicio)
+  - [x] Counter: `external_api_errors_total`
+- [x] Implementar middleware de FastAPI para métricas automáticas
+- [x] Exponer endpoint `/metrics` para Prometheus
 
 ### Prometheus Configuration
 
-- [ ] Añadir servicio Prometheus a docker-compose.yml
-- [ ] Crear `prometheus.yml` con configuración
-- [ ] Configurar scrape de métricas de la API
-- [ ] Configurar retention de datos
+- [x] Añadir servicio Prometheus a docker-compose.yml
+- [x] Crear `prometheus.yml` con configuración
+- [x] Configurar scrape de métricas de la API
+- [x] Configurar retention de datos
 
 ### Grafana Setup
 
-- [ ] Añadir servicio Grafana a docker-compose.yml
-- [ ] Crear datasource apuntando a Prometheus
-- [ ] Crear dashboard "Smart Pricing Overview":
-  - [ ] Panel: Request rate por endpoint
-  - [ ] Panel: Request duration (p50, p95, p99)
-  - [ ] Panel: Error rate
-  - [ ] Panel: Pricing calculations/min
-  - [ ] Panel: Cache hit rate
-  - [ ] Panel: Active matches
-  - [ ] Panel: External API calls
-- [ ] Crear dashboard "Business Metrics":
-  - [ ] Panel: Revenue por día
-  - [ ] Panel: Tickets vendidos por día
-  - [ ] Panel: Precio promedio por zona
-  - [ ] Panel: Ocupación por zona
-- [ ] Exportar dashboards a JSON (version control)
+- [x] Añadir servicio Grafana a docker-compose.yml
+- [x] Crear datasource apuntando a Prometheus
+- [x] Crear dashboard "Smart Pricing Overview":
+  - [x] Panel: Request rate por endpoint
+  - [x] Panel: Request duration (p50, p95, p99)
+  - [x] Panel: Error rate
+  - [x] Panel: Pricing calculations/min
+  - [x] Panel: Cache hit rate
+  - [x] Panel: Active matches
+  - [x] Panel: External API calls
+- [x] Crear dashboard "Business Metrics":
+  - [x] Panel: Revenue por día
+  - [x] Panel: Tickets vendidos por día
+  - [x] Panel: Precio promedio por zona
+  - [x] Panel: Ocupación por zona
+- [x] Exportar dashboards a JSON (version control)
 
 ### Alerting
 
-- [ ] Configurar alertas en Prometheus:
-  - [ ] High error rate (> 5%)
-  - [ ] High latency (p95 > 2s)
-  - [ ] Redis down
-  - [ ] PostgreSQL down
-  - [ ] No pricing updates en última hora
-- [ ] Configurar Alertmanager (opcional para MVP)
-- [ ] Configurar notificaciones (email, Slack)
+- [x] Configurar alertas en Prometheus:
+  - [x] High error rate (> 5%)
+  - [x] High latency (p95 > 2s)
+  - [x] Redis down
+  - [x] PostgreSQL down
+  - [x] No pricing updates en última hora
+- [ ] Configurar Alertmanager (opcional para MVP) - Deferred to post-MVP
+- [ ] Configurar notificaciones (email, Slack) - Deferred to post-MVP
 
 ### Distributed Tracing (Opcional)
 
-- [ ] Instalar OpenTelemetry SDK
-- [ ] Configurar tracing automático para FastAPI
-- [ ] Configurar tracing para llamadas DB
-- [ ] Configurar tracing para llamadas Redis
-- [ ] Configurar export a Jaeger o Zipkin
-- [ ] Añadir Jaeger a docker-compose.yml
+- [ ] Instalar OpenTelemetry SDK - Deferred to Phase 18 (Advanced Features)
+- [ ] Configurar tracing automático para FastAPI - Deferred to Phase 18
+- [ ] Configurar tracing para llamadas DB - Deferred to Phase 18
+- [ ] Configurar tracing para llamadas Redis - Deferred to Phase 18
+- [ ] Configurar export a Jaeger o Zipkin - Deferred to Phase 18
+- [ ] Añadir Jaeger a docker-compose.yml - Deferred to Phase 18
 
 ---
 

@@ -27,16 +27,16 @@ class TestFootballDataAPI:
         api = FootballDataAPI(api_key="test_key")
         assert api.api_key == "test_key"
         assert api.base_url == "https://api.football-data.org/v4"
-        assert api.cache_ttl == 21600  # 6 hours
+        assert api.cache is not None  # Cache strategy should be initialized
 
     def test_cache_operations(self):
         """Test cache get and set operations."""
         api = FootballDataAPI(api_key="test_key")
 
-        # Set cache
+        # Set cache using internal method
         api._set_cache("test_key", {"data": "value"})
 
-        # Get from cache
+        # Get from cache using internal method
         result = api._get_from_cache("test_key")
         assert result == {"data": "value"}
 
@@ -75,6 +75,8 @@ class TestFootballDataAPI:
         mock_client.return_value.__enter__.return_value.get.return_value = mock_response
 
         api = FootballDataAPI(api_key="test_key")
+        # Clear cache to avoid interference from previous tests
+        api.clear_cache()
         result = api.get_team_standings("PD", "2024")
 
         assert "standings" in result
@@ -106,6 +108,8 @@ class TestFootballDataAPI:
         mock_client.return_value.__enter__.return_value.get.return_value = mock_response
 
         api = FootballDataAPI(api_key="test_key")
+        # Clear cache to avoid interference
+        api.clear_cache()
 
         with pytest.raises(ExternalAPIError) as exc_info:
             api.get_team_stats("123")

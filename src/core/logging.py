@@ -154,6 +154,11 @@ class ContextLogger(logging.Logger):
         super()._log(level, msg, args, exc_info, extra, stack_info, stacklevel + 1)
 
 
+# Registrar ContextLogger como clase por defecto INMEDIATAMENTE después de definirla
+# Esto asegura que todos los loggers creados después de este punto usen ContextLogger
+logging.setLoggerClass(ContextLogger)
+
+
 def setup_logging(level: Optional[str] = None) -> None:
     """
     Configura el sistema de logging de la aplicación.
@@ -174,9 +179,6 @@ def setup_logging(level: Optional[str] = None) -> None:
         >>> setup_logging(level="DEBUG")
     """
     settings = get_settings()
-
-    # Registrar custom logger class
-    logging.setLoggerClass(ContextLogger)
 
     # Determinar formato
     if settings.logging.format == "json":
